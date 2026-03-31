@@ -41,3 +41,18 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## Tests
+
+Backend tests (requires Postgres running):
+
+```bash
+cd backend
+pytest
+```
+
+You can also run tests in Docker:
+
+```bash
+docker compose run --rm backend pytest
+```

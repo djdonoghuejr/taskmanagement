@@ -21,7 +21,7 @@ services:
       SEED_DATA: "true"
     volumes:
       - ./backend:/app
-    command: bash -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: bash -c "python -m app.wait_for_db && alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
     depends_on:
@@ -34,7 +34,8 @@ services:
       VITE_API_BASE: /api
     volumes:
       - ./frontend:/app
-    command: npm run dev -- --host 0.0.0.0 --port 5173
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     ports:
       - "5173:5173"
     depends_on:

@@ -16,8 +16,12 @@ depends_on = None
 
 
 def upgrade():
-    task_status = postgresql.ENUM("pending", "completed", name="taskstatus")
-    cadence_type = postgresql.ENUM("daily", "weekly", "monthly", "custom", name="cadencetype")
+    task_status = postgresql.ENUM(
+        "pending", "completed", name="taskstatus", create_type=False
+    )
+    cadence_type = postgresql.ENUM(
+        "daily", "weekly", "monthly", "custom", name="cadencetype", create_type=False
+    )
 
     task_status.create(op.get_bind(), checkfirst=True)
     cadence_type.create(op.get_bind(), checkfirst=True)
@@ -55,7 +59,7 @@ def upgrade():
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("due_date", sa.Date(), nullable=True),
         sa.Column("tags", postgresql.ARRAY(sa.String()), nullable=False, server_default=sa.text("'{}'")),
-        sa.Column("status", sa.Enum(name="taskstatus"), nullable=False, server_default=sa.text("'pending'")),
+        sa.Column("status", task_status, nullable=False, server_default=sa.text("'pending'")),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
@@ -68,7 +72,7 @@ def upgrade():
         sa.Column("project_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("projects.id"), nullable=True),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("cadence_type", sa.Enum(name="cadencetype"), nullable=False),
+        sa.Column("cadence_type", cadence_type, nullable=False),
         sa.Column("cadence_days", postgresql.ARRAY(sa.Integer()), nullable=True),
         sa.Column("cadence_day_of_month", sa.Integer(), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
