@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: taskforge
+      POSTGRES_PASSWORD: taskforge
+      POSTGRES_DB: taskforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - taskforge_db:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://taskforge:taskforge@db:5432/taskforge
+      SYSTEM_USER_ID: 00000000-0000-0000-0000-000000000001
+      SEED_DATA: "true"
+    volumes:
+      - ./backend:/app
+    command: bash -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_BASE: /api
+    volumes:
+      - ./frontend:/app
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  taskforge_db:
