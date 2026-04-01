@@ -22,6 +22,7 @@ export interface Task {
   tags: string[];
   status: TaskStatus;
   completed_at?: string | null;
+  completion_notes?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +46,7 @@ export interface RecurringCompletion {
   recurring_item_id: string;
   completed_date: string;
   completed_at: string;
+  completion_notes?: string | null;
 }
 
 export interface RecurringMetrics {

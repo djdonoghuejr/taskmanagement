@@ -34,6 +34,12 @@ class RecurringItemRead(RecurringItemBase):
     created_at: datetime
     updated_at: datetime
 
+class RecurringCompletionCreate(BaseModel):
+    completion_notes: Optional[str] = None
+
+class RecurringCompletionUpdate(BaseModel):
+    completion_notes: Optional[str] = None
+
 class RecurringCompletionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -41,6 +47,7 @@ class RecurringCompletionRead(BaseModel):
     recurring_item_id: UUID
     completed_date: date
     completed_at: datetime
+    completion_notes: Optional[str] = None
 
 class RecurringMetrics(BaseModel):
     recurring_item_id: UUID

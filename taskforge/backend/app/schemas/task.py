@@ -23,6 +23,10 @@ class TaskUpdate(BaseModel):
     tags: Optional[List[str]] = None
     status: Optional[TaskStatus] = None
     completed_at: Optional[datetime] = None
+    completion_notes: Optional[str] = None
+
+class TaskComplete(BaseModel):
+    completion_notes: Optional[str] = None
 
 class TaskRead(TaskBase):
     model_config = ConfigDict(from_attributes=True)
@@ -31,5 +35,6 @@ class TaskRead(TaskBase):
     user_id: UUID
     status: TaskStatus
     completed_at: Optional[datetime] = None
+    completion_notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime

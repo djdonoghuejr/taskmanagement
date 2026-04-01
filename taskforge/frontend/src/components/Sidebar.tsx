@@ -7,17 +7,24 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-200 bg-white p-4">
-      <h1 className="text-xl font-semibold text-slate-900">TaskForge</h1>
+    <aside className="w-72 shrink-0 border-r border-slate-200 bg-white/80 p-4 backdrop-blur">
+      <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 p-4 text-white">
+        <h1 className="text-xl font-semibold">TaskForge</h1>
+        <p className="mt-1 text-xs text-slate-200">Daily rhythms, calmly executed.</p>
+      </div>
+
       <nav className="mt-6 space-y-2">
         <NavLink to="/" className={navClass} end>
-          Dashboard
+          Home
         </NavLink>
+
+        <div className="mt-3 border-t border-slate-200 pt-3" />
+
         <NavLink to="/tasks" className={navClass}>
-          To-Do List
+          Tasks
         </NavLink>
         <NavLink to="/recurring" className={navClass}>
-          Recurring Checklist
+          Recurring
         </NavLink>
         <NavLink to="/calendar" className={navClass}>
           Calendar

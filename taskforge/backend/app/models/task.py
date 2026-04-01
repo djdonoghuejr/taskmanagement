@@ -18,5 +18,6 @@ class Task(Base):
     tags = Column(ARRAY(String), nullable=False, default=list)
     status = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.pending)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    completion_notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

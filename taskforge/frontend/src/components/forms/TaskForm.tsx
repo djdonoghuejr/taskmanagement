@@ -26,6 +26,7 @@ export default function TaskForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="New task"
+          data-testid="task-name-input"
         />
       </div>
       <div>
@@ -35,9 +36,13 @@ export default function TaskForm({
           className="mt-1 rounded-md border border-slate-300 px-3 py-2"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
+          data-testid="task-due-input"
         />
       </div>
-      <button className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white">
+      <button
+        className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white"
+        data-testid="task-add-button"
+      >
         Add Task
       </button>
     </form>

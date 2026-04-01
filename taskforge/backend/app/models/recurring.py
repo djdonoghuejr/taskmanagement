@@ -28,3 +28,4 @@ class RecurringCompletion(Base):
     recurring_item_id = Column(UUID(as_uuid=True), ForeignKey("recurring_items.id"), nullable=False)
     completed_date = Column(Date, nullable=False)
     completed_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    completion_notes = Column(Text, nullable=True)

@@ -13,6 +13,8 @@ from ..schemas.recurring import (
     RecurringItemRead,
     RecurringItemUpdate,
     RecurringCompletionRead,
+    RecurringCompletionCreate,
+    RecurringCompletionUpdate,
     RecurringMetrics,
 )
 from ..services.metrics import placeholder_metrics
@@ -67,7 +69,11 @@ def update_recurring(item_id: UUID, payload: RecurringItemUpdate, db: Session = 
 
 
 @router.post("/{item_id}/complete", response_model=RecurringCompletionRead)
-def complete_recurring(item_id: UUID, db: Session = Depends(get_db)):
+def complete_recurring(
+    item_id: UUID,
+    payload: RecurringCompletionCreate = RecurringCompletionCreate(),
+    db: Session = Depends(get_db),
+):
     item = (
         db.query(RecurringItem)
         .filter(RecurringItem.id == item_id, RecurringItem.user_id == SYSTEM_USER_ID)
@@ -88,8 +94,41 @@ def complete_recurring(item_id: UUID, db: Session = Depends(get_db)):
     if existing:
         return existing
 
-    completion = RecurringCompletion(recurring_item_id=item_id, completed_date=today)
+    completion = RecurringCompletion(
+        recurring_item_id=item_id,
+        completed_date=today,
+        completion_notes=payload.completion_notes,
+    )
     db.add(completion)
+    db.commit()
+    db.refresh(completion)
+    return completion
+
+
+@router.patch("/{item_id}/complete", response_model=RecurringCompletionRead)
+def update_completion(
+    item_id: UUID,
+    payload: RecurringCompletionUpdate,
+    date_str: Optional[str] = Query(None, alias="date"),
+    db: Session = Depends(get_db),
+):
+    target_date = date.today() if date_str is None else date.fromisoformat(date_str)
+    completion = (
+        db.query(RecurringCompletion)
+        .join(RecurringItem, RecurringCompletion.recurring_item_id == RecurringItem.id)
+        .filter(
+            RecurringCompletion.recurring_item_id == item_id,
+            RecurringCompletion.completed_date == target_date,
+            RecurringItem.user_id == SYSTEM_USER_ID,
+        )
+        .first()
+    )
+    if not completion:
+        raise HTTPException(status_code=404, detail="Completion not found")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(completion, field, value)
+
     db.commit()
     db.refresh(completion)
     return completion
@@ -132,14 +171,34 @@ def delete_recurring(item_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.get("/completions", response_model=List[RecurringCompletionRead])
-def list_completions(date_str: Optional[str] = Query(None, alias="date"), db: Session = Depends(get_db)):
-    target_date = date.today() if date_str is None else date.fromisoformat(date_str)
-    return (
+def list_completions(
+    date_str: Optional[str] = Query(None, alias="date"),
+    start: Optional[str] = Query(None),
+    end: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    if (start is None) != (end is None):
+        raise HTTPException(status_code=400, detail="start and end must be provided together")
+
+    query = (
         db.query(RecurringCompletion)
         .join(RecurringItem, RecurringCompletion.recurring_item_id == RecurringItem.id)
-        .filter(RecurringItem.user_id == SYSTEM_USER_ID, RecurringCompletion.completed_date == target_date)
-        .all()
+        .filter(RecurringItem.user_id == SYSTEM_USER_ID)
     )
+
+    if start is not None and end is not None:
+        start_date = date.fromisoformat(start)
+        end_date = date.fromisoformat(end)
+        if end_date < start_date:
+            raise HTTPException(status_code=400, detail="end must be on or after start")
+        query = query.filter(
+            RecurringCompletion.completed_date >= start_date,
+            RecurringCompletion.completed_date <= end_date,
+        )
+        return query.order_by(RecurringCompletion.completed_date.desc()).all()
+
+    target_date = date.today() if date_str is None else date.fromisoformat(date_str)
+    return query.filter(RecurringCompletion.completed_date == target_date).all()
 
 
 @router.get("/metrics", response_model=List[RecurringMetrics])

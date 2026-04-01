@@ -2,8 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --tf-bg-0: #0b1220;
+  --tf-bg-1: #f8fafc;
+  --tf-ink: #0f172a;
+  --tf-accent-0: #f97316;
+  --tf-accent-1: #22c55e;
+}
+
 body {
   font-family: "Sora", "Segoe UI", sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+  color: var(--tf-ink);
+  background:
+    radial-gradient(1200px 800px at 10% 0%, rgba(249, 115, 22, 0.12), transparent 50%),
+    radial-gradient(1000px 700px at 90% 10%, rgba(34, 197, 94, 0.10), transparent 55%),
+    radial-gradient(900px 600px at 40% 100%, rgba(59, 130, 246, 0.10), transparent 60%),
+    var(--tf-bg-1);
 }
