@@ -6,7 +6,18 @@ function taskRowLocator(page, name: string) {
   return page.locator(`text=${name}`).first();
 }
 
+async function register(page) {
+  const email = `pw-${Date.now()}@example.com`;
+  const password = "password123";
+  await page.goto("/register");
+  await page.getByPlaceholder("you@example.com").fill(email);
+  await page.getByPlaceholder("Password").fill(password);
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible({ timeout: 15000 });
+}
+
 test("create, update, duplicate, delete tasks", async ({ page }) => {
+  await register(page);
   await page.goto("/tasks");
   await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
 

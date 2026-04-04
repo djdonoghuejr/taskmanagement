@@ -8,12 +8,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import nullslast
 from sqlalchemy import text
 
-from ..config import SYSTEM_USER_ID
 from ..database import get_db
+from ..deps.auth import get_current_user
 from ..models.task import Task
 from ..models.task_activity import TaskActivity
 from ..models.task_dependency import TaskDependency
 from ..models.enums import TaskStatus
+from ..models.user import User
 from ..schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskComplete
 from ..schemas.task_activity import TaskActivityRead, TaskActivityCommentCreate
 from ..schemas.task_dependency import TaskDependenciesRead, TaskSummary
@@ -24,13 +25,14 @@ def _create_activity(
     db: Session,
     *,
     task_id: UUID,
+    actor_user_id: UUID,
     type: str,
     message: Optional[str] = None,
     meta: Optional[dict] = None,
 ) -> TaskActivity:
     activity = TaskActivity(
         task_id=task_id,
-        actor_user_id=SYSTEM_USER_ID,
+        actor_user_id=actor_user_id,
         type=type,
         message=message,
         meta=meta,
@@ -67,12 +69,12 @@ def _get_blocking_ids(db: Session, task_id: UUID) -> set[UUID]:
     return {r[0] for r in rows}
 
 
-def _validate_dependency_candidates(db: Session, ids: set[UUID]) -> dict[UUID, Task]:
+def _validate_dependency_candidates(db: Session, *, user_id: UUID, ids: set[UUID]) -> dict[UUID, Task]:
     if not ids:
         return {}
     tasks = (
         db.query(Task)
-        .filter(Task.id.in_(list(ids)), Task.user_id == SYSTEM_USER_ID)
+        .filter(Task.id.in_(list(ids)), Task.user_id == user_id)
         .all()
     )
     found = {t.id: t for t in tasks}
@@ -122,7 +124,7 @@ def _recompute_task_status(db: Session, task: Task) -> bool:
     blockers = (
         db.query(Task)
         .join(TaskDependency, TaskDependency.blocker_task_id == Task.id)
-        .filter(TaskDependency.blocked_task_id == task.id, Task.user_id == SYSTEM_USER_ID)
+        .filter(TaskDependency.blocked_task_id == task.id, Task.user_id == task.user_id)
         .all()
     )
     has_incomplete_blockers = any(b.status != TaskStatus.completed for b in blockers)
@@ -133,6 +135,7 @@ def _recompute_task_status(db: Session, task: Task) -> bool:
         _create_activity(
             db,
             task_id=task.id,
+            actor_user_id=task.user_id,
             type="status_changed",
             meta={"old_status": old.value, "new_status": next_status.value},
         )
@@ -140,12 +143,12 @@ def _recompute_task_status(db: Session, task: Task) -> bool:
     return False
 
 
-def _recompute_task_statuses(db: Session, task_ids: set[UUID]) -> None:
+def _recompute_task_statuses(db: Session, *, user_id: UUID, task_ids: set[UUID]) -> None:
     if not task_ids:
         return
     tasks = (
         db.query(Task)
-        .filter(Task.id.in_(list(task_ids)), Task.user_id == SYSTEM_USER_ID)
+        .filter(Task.id.in_(list(task_ids)), Task.user_id == user_id)
         .all()
     )
     for task in tasks:
@@ -155,6 +158,8 @@ def _recompute_task_statuses(db: Session, task_ids: set[UUID]) -> None:
 def _set_task_dependencies(
     db: Session,
     *,
+    user_id: UUID,
+    actor_user_id: UUID,
     task_id: UUID,
     blocked_by_ids: Optional[list[UUID]],
     blocking_ids: Optional[list[UUID]],
@@ -166,7 +171,7 @@ def _set_task_dependencies(
     next_blocked_by = current_blocked_by if blocked_by_ids is None else set(blocked_by_ids)
     next_blocking = current_blocking if blocking_ids is None else set(blocking_ids)
 
-    _validate_dependency_candidates(db, next_blocked_by | next_blocking)
+    _validate_dependency_candidates(db, user_id=user_id, ids=(next_blocked_by | next_blocking))
 
     edges_to_add: list[tuple[UUID, UUID]] = []
     edges_to_remove: list[tuple[UUID, UUID]] = []
@@ -201,10 +206,15 @@ def _set_task_dependencies(
             [TaskDependency(blocker_task_id=a, blocked_task_id=b) for (a, b) in edges_to_add]
         )
 
+    # Ensure dependency writes are visible to subsequent ORM queries in this transaction.
+    if edges_to_add or edges_to_remove:
+        db.flush()
+
     if edges_to_add or edges_to_remove:
         _create_activity(
             db,
             task_id=task_id,
+            actor_user_id=actor_user_id,
             type="dependencies_changed",
             message=activity_comment,
             meta={
@@ -218,7 +228,7 @@ def _set_task_dependencies(
     affected: set[UUID] = {task_id}
     # tasks that this task blocks can become blocked/unblocked based on this task's completion state.
     affected |= next_blocking | current_blocking
-    _recompute_task_statuses(db, affected)
+    _recompute_task_statuses(db, user_id=user_id, task_ids=affected)
 
 
 @router.get("", response_model=List[TaskRead])
@@ -232,9 +242,10 @@ def list_tasks(
     completed_after: Optional[date] = Query(None),
     order_by: str = Query("due_date", pattern="^(due_date|completed_at|created_at)$"),
     sort: str = Query("asc", pattern="^(asc|desc)$"),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Task).filter(Task.user_id == SYSTEM_USER_ID)
+    query = db.query(Task).filter(Task.user_id == user.id)
     if status:
         query = query.filter(Task.status == status)
     if project_id:
@@ -268,9 +279,9 @@ def list_tasks(
 
 
 @router.post("", response_model=TaskRead)
-def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
+def create_task(payload: TaskCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     task = Task(
-        user_id=SYSTEM_USER_ID,
+        user_id=user.id,
         name=payload.name,
         description=payload.description,
         project_id=payload.project_id,
@@ -282,6 +293,7 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
     _create_activity(
         db,
         task_id=task.id,
+        actor_user_id=user.id,
         type="created",
         meta={
             "due_date": payload.due_date.isoformat() if payload.due_date else None,
@@ -291,6 +303,8 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
 
     _set_task_dependencies(
         db,
+        user_id=user.id,
+        actor_user_id=user.id,
         task_id=task.id,
         blocked_by_ids=payload.blocked_by_ids,
         blocking_ids=payload.blocking_ids,
@@ -308,12 +322,13 @@ def search_tasks(
     project_id: Optional[UUID] = None,
     exclude_id: Optional[UUID] = None,
     limit: int = Query(20, ge=1, le=50),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if scope == "project" and project_id is None:
         raise HTTPException(status_code=400, detail="project_id is required when scope=project")
 
-    query = db.query(Task).filter(Task.user_id == SYSTEM_USER_ID, Task.status != TaskStatus.completed)
+    query = db.query(Task).filter(Task.user_id == user.id, Task.status != TaskStatus.completed)
     if exclude_id is not None:
         query = query.filter(Task.id != exclude_id)
     if scope == "project":
@@ -324,16 +339,16 @@ def search_tasks(
 
 
 @router.get("/{task_id}", response_model=TaskRead)
-def get_task(task_id: UUID, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == SYSTEM_USER_ID).first()
+def get_task(task_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
 
 @router.put("/{task_id}", response_model=TaskRead)
-def update_task(task_id: UUID, payload: TaskUpdate, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == SYSTEM_USER_ID).first()
+def update_task(task_id: UUID, payload: TaskUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -372,6 +387,7 @@ def update_task(task_id: UUID, payload: TaskUpdate, db: Session = Depends(get_db
             _create_activity(
                 db,
                 task_id=task.id,
+                actor_user_id=user.id,
                 type="due_date_changed",
                 meta={
                     "old_due_date": old_due_date.isoformat() if old_due_date else None,
@@ -384,6 +400,7 @@ def update_task(task_id: UUID, payload: TaskUpdate, db: Session = Depends(get_db
             _create_activity(
                 db,
                 task_id=task.id,
+                actor_user_id=user.id,
                 type="status_changed",
                 meta={
                     "old_status": old_status.value if hasattr(old_status, "value") else str(old_status),
@@ -393,18 +410,20 @@ def update_task(task_id: UUID, payload: TaskUpdate, db: Session = Depends(get_db
         )
         if task.status == TaskStatus.completed:
             blocked_task_ids = _get_blocking_ids(db, task.id)
-            _recompute_task_statuses(db, blocked_task_ids)
+            _recompute_task_statuses(db, user_id=user.id, task_ids=blocked_task_ids)
 
     if activity_comment:
         if len(change_activities) == 1:
             change_activities[0].message = activity_comment
         elif len(change_activities) > 1:
-            _create_activity(db, task_id=task.id, type="comment", message=activity_comment)
+            _create_activity(db, task_id=task.id, actor_user_id=user.id, type="comment", message=activity_comment)
         else:
-            _create_activity(db, task_id=task.id, type="comment", message=activity_comment)
+            _create_activity(db, task_id=task.id, actor_user_id=user.id, type="comment", message=activity_comment)
 
     _set_task_dependencies(
         db,
+        user_id=user.id,
+        actor_user_id=user.id,
         task_id=task.id,
         blocked_by_ids=blocked_by_ids,
         blocking_ids=blocking_ids,
@@ -421,9 +440,12 @@ def update_task(task_id: UUID, payload: TaskUpdate, db: Session = Depends(get_db
 
 @router.patch("/{task_id}/complete", response_model=TaskRead)
 def complete_task(
-    task_id: UUID, payload: TaskComplete = TaskComplete(), db: Session = Depends(get_db)
+    task_id: UUID,
+    payload: TaskComplete = TaskComplete(),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == SYSTEM_USER_ID).first()
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -434,6 +456,7 @@ def complete_task(
     _create_activity(
         db,
         task_id=task.id,
+        actor_user_id=user.id,
         type="status_changed",
         message=payload.completion_notes,
         meta={
@@ -443,15 +466,15 @@ def complete_task(
     )
     # tasks that were blocked by this task may become unblocked now
     blocked_task_ids = _get_blocking_ids(db, task.id)
-    _recompute_task_statuses(db, blocked_task_ids)
+    _recompute_task_statuses(db, user_id=user.id, task_ids=blocked_task_ids)
     db.commit()
     db.refresh(task)
     return task
 
 
 @router.patch("/{task_id}/reopen", response_model=TaskRead)
-def reopen_task(task_id: UUID, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == SYSTEM_USER_ID).first()
+def reopen_task(task_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -461,6 +484,7 @@ def reopen_task(task_id: UUID, db: Session = Depends(get_db)):
     _create_activity(
         db,
         task_id=task.id,
+        actor_user_id=user.id,
         type="status_changed",
         meta={
             "old_status": old_status.value,
@@ -469,20 +493,20 @@ def reopen_task(task_id: UUID, db: Session = Depends(get_db)):
     )
     # tasks blocked by this task may become blocked again
     blocked_task_ids = _get_blocking_ids(db, task.id)
-    _recompute_task_statuses(db, blocked_task_ids)
+    _recompute_task_statuses(db, user_id=user.id, task_ids=blocked_task_ids)
     db.commit()
     db.refresh(task)
     return task
 
 
 @router.post("/{task_id}/duplicate", response_model=TaskRead)
-def duplicate_task(task_id: UUID, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == SYSTEM_USER_ID).first()
+def duplicate_task(task_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
     duplicate = Task(
-        user_id=SYSTEM_USER_ID,
+        user_id=user.id,
         project_id=task.project_id,
         name=task.name,
         description=task.description,
@@ -496,6 +520,7 @@ def duplicate_task(task_id: UUID, db: Session = Depends(get_db)):
     _create_activity(
         db,
         task_id=duplicate.id,
+        actor_user_id=user.id,
         type="created",
         meta={
             "due_date": duplicate.due_date.isoformat() if duplicate.due_date else None,
@@ -509,28 +534,29 @@ def duplicate_task(task_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.delete("/{task_id}")
-def delete_task(task_id: UUID, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == SYSTEM_USER_ID).first()
+def delete_task(task_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     blocked_task_ids = _get_blocking_ids(db, task.id)
+    db.query(TaskActivity).filter(TaskActivity.task_id == task_id).delete(synchronize_session=False)
     db.delete(task)
     db.flush()
-    _recompute_task_statuses(db, blocked_task_ids)
+    _recompute_task_statuses(db, user_id=user.id, task_ids=blocked_task_ids)
     db.commit()
     return {"ok": True}
 
 
 @router.get("/{task_id}/dependencies", response_model=TaskDependenciesRead)
-def task_dependencies(task_id: UUID, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == SYSTEM_USER_ID).first()
+def task_dependencies(task_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
     blocked_by = (
         db.query(Task)
         .join(TaskDependency, TaskDependency.blocker_task_id == Task.id)
-        .filter(TaskDependency.blocked_task_id == task_id, Task.user_id == SYSTEM_USER_ID)
+        .filter(TaskDependency.blocked_task_id == task_id, Task.user_id == user.id)
         .order_by(Task.name.asc())
         .all()
     )
@@ -538,7 +564,7 @@ def task_dependencies(task_id: UUID, db: Session = Depends(get_db)):
     blocking = (
         db.query(Task)
         .join(TaskDependency, TaskDependency.blocked_task_id == Task.id)
-        .filter(TaskDependency.blocker_task_id == task_id, Task.user_id == SYSTEM_USER_ID)
+        .filter(TaskDependency.blocker_task_id == task_id, Task.user_id == user.id)
         .order_by(Task.name.asc())
         .all()
     )
@@ -550,8 +576,8 @@ def task_dependencies(task_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.get("/{task_id}/activity", response_model=List[TaskActivityRead])
-def list_task_activity(task_id: UUID, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == SYSTEM_USER_ID).first()
+def list_task_activity(task_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -564,12 +590,17 @@ def list_task_activity(task_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/{task_id}/activity/comments", response_model=TaskActivityRead)
-def add_task_comment(task_id: UUID, payload: TaskActivityCommentCreate, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == SYSTEM_USER_ID).first()
+def add_task_comment(
+    task_id: UUID,
+    payload: TaskActivityCommentCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    activity = _create_activity(db, task_id=task_id, type="comment", message=payload.message)
+    activity = _create_activity(db, task_id=task_id, actor_user_id=user.id, type="comment", message=payload.message)
     db.commit()
     db.refresh(activity)
     return activity

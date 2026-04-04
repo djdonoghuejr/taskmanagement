@@ -18,6 +18,16 @@ function isoDaysFromNow(days: number) {
   return d.toISOString().slice(0, 10);
 }
 
+async function register(page: Page) {
+  const email = `pw-${Date.now()}@example.com`;
+  const password = "password123";
+  await page.goto("/register");
+  await page.getByPlaceholder("you@example.com").fill(email);
+  await page.getByPlaceholder("Password").fill(password);
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible({ timeout: 15000 });
+}
+
 test("today -> history: task completion with notes + reopen", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("pageerror", (err) => consoleErrors.push(err.stack || err.message));
@@ -25,6 +35,7 @@ test("today -> history: task completion with notes + reopen", async ({ page }) =
     if (msg.type() === "error") consoleErrors.push(msg.text());
   });
 
+  await register(page);
   const name = `PW Today Task ${Date.now()}`;
   await page.goto("/tasks");
   await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
@@ -71,6 +82,7 @@ test("today -> history: habit completion with notes + edit + undo", async ({ pag
     if (msg.type() === "error") consoleErrors.push(msg.text());
   });
 
+  await register(page);
   const name = `PW Daily ${Date.now()}`;
 
   await page.goto("/habits");

@@ -1,6 +1,6 @@
 """task dependencies + blocked status
 
-Revision ID: 0004_task_dependencies_and_blocked
+Revision ID: 0004_task_deps
 Revises: 0003_task_activity
 Create Date: 2026-04-04
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = "0004_task_dependencies_and_blocked"
+revision = "0004_task_deps"
 down_revision = "0003_task_activity"
 branch_labels = None
 depends_on = None
@@ -49,4 +49,3 @@ def downgrade():
     op.drop_index("ix_task_dependencies_blocker", table_name="task_dependencies")
     op.drop_table("task_dependencies")
     # Note: removing values from Postgres enums is non-trivial; we intentionally don't attempt it.
-

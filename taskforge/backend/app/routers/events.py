@@ -5,9 +5,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from ..config import SYSTEM_USER_ID
 from ..database import get_db
+from ..deps.auth import get_current_user
 from ..models.event import CalendarEvent
+from ..models.user import User
 from ..schemas.event import EventCreate, EventRead, EventUpdate
 from ..services.time_utils import ensure_utc
 
@@ -18,9 +19,10 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 def list_events(
     start: Optional[datetime] = Query(None),
     end: Optional[datetime] = Query(None),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(CalendarEvent).filter(CalendarEvent.user_id == SYSTEM_USER_ID)
+    query = db.query(CalendarEvent).filter(CalendarEvent.user_id == user.id)
     if start:
         query = query.filter(CalendarEvent.end_time >= start)
     if end:
@@ -29,9 +31,9 @@ def list_events(
 
 
 @router.post("", response_model=EventRead)
-def create_event(payload: EventCreate, db: Session = Depends(get_db)):
+def create_event(payload: EventCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     event = CalendarEvent(
-        user_id=SYSTEM_USER_ID,
+        user_id=user.id,
         title=payload.title,
         description=payload.description,
         start_time=ensure_utc(payload.start_time),
@@ -46,10 +48,12 @@ def create_event(payload: EventCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{event_id}", response_model=EventRead)
-def update_event(event_id: UUID, payload: EventUpdate, db: Session = Depends(get_db)):
+def update_event(
+    event_id: UUID, payload: EventUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     event = (
         db.query(CalendarEvent)
-        .filter(CalendarEvent.id == event_id, CalendarEvent.user_id == SYSTEM_USER_ID)
+        .filter(CalendarEvent.id == event_id, CalendarEvent.user_id == user.id)
         .first()
     )
     if not event:
@@ -70,10 +74,10 @@ def update_event(event_id: UUID, payload: EventUpdate, db: Session = Depends(get
 
 
 @router.delete("/{event_id}")
-def delete_event(event_id: UUID, db: Session = Depends(get_db)):
+def delete_event(event_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     event = (
         db.query(CalendarEvent)
-        .filter(CalendarEvent.id == event_id, CalendarEvent.user_id == SYSTEM_USER_ID)
+        .filter(CalendarEvent.id == event_id, CalendarEvent.user_id == user.id)
         .first()
     )
     if not event:

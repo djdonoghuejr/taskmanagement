@@ -17,11 +17,10 @@ services:
       context: ./backend
     environment:
       DATABASE_URL: postgresql+pg8000://taskforge:taskforge@db:5432/taskforge
-      SYSTEM_USER_ID: 00000000-0000-0000-0000-000000000001
-      SEED_DATA: "true"
+      SEED_DATA: "false"
     volumes:
       - ./backend:/app
-    command: bash -c "python -m app.wait_for_db && alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: bash -c "python -m app.wait_for_db && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
     depends_on:

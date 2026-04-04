@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Text, DateTime, Enum, ForeignKey, Boolean, Integer, Date
+from sqlalchemy import Column, String, Text, DateTime, Enum, ForeignKey, Boolean, Integer, Date, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.sql import func
 
@@ -8,9 +8,10 @@ from .enums import CadenceType
 
 class Habit(Base):
     __tablename__ = "recurring_items"
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_habits_user_name"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
