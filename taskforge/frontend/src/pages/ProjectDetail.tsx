@@ -2,16 +2,20 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { listProjects } from "../api/projects";
 import { listTasks } from "../api/tasks";
-import { listRecurring } from "../api/recurring";
+import { listHabits } from "../api/habits";
 import TaskCard from "../components/TaskCard";
+import TaskDialog from "../components/TaskDialog";
+import { useState } from "react";
+import { Task } from "../types";
 
 export default function ProjectDetail() {
   const { id } = useParams();
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: listProjects });
   const { data: tasks = [] } = useQuery({ queryKey: ["tasks"], queryFn: listTasks });
-  const { data: recurring = [] } = useQuery({
-    queryKey: ["recurring"],
-    queryFn: listRecurring,
+  const { data: habits = [] } = useQuery({
+    queryKey: ["habits"],
+    queryFn: listHabits,
   });
 
   if (id === "overview") {
@@ -40,7 +44,7 @@ export default function ProjectDetail() {
 
   const project = projects.find((p) => p.id === id);
   const projectTasks = tasks.filter((t) => t.project_id === id);
-  const projectRecurring = recurring.filter((r) => r.project_id === id);
+  const projectHabits = habits.filter((h) => h.project_id === id);
 
   if (!project) {
     return <div>Project not found.</div>;
@@ -62,15 +66,15 @@ export default function ProjectDetail() {
         <h3 className="text-lg font-semibold">Tasks</h3>
         <div className="grid gap-2">
           {projectTasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard key={task.id} task={task} onClick={() => setSelectedTask(task)} />
           ))}
         </div>
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold">Recurring Items</h3>
+        <h3 className="text-lg font-semibold">Habits</h3>
         <div className="grid gap-2">
-          {projectRecurring.map((item) => (
+          {projectHabits.map((item) => (
             <div key={item.id} className="rounded-lg border border-slate-200 bg-white p-3">
               <p className="font-medium text-slate-900">{item.name}</p>
               <p className="text-xs text-slate-500">{item.cadence_type}</p>
@@ -78,6 +82,8 @@ export default function ProjectDetail() {
           ))}
         </div>
       </section>
+
+      <TaskDialog open={Boolean(selectedTask)} task={selectedTask} onClose={() => setSelectedTask(null)} />
     </div>
   );
 }

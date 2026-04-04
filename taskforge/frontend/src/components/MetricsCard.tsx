@@ -1,11 +1,11 @@
-import { RecurringMetrics } from "../types";
+import { HabitMetrics } from "../types";
 
 export default function MetricsCard({
   title,
   metrics,
 }: {
   title: string;
-  metrics: RecurringMetrics;
+  metrics: HabitMetrics;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">

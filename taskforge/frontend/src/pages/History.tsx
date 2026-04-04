@@ -2,14 +2,14 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listTasks, reopenTask, updateTask } from "../api/tasks";
 import {
-  listRecurring,
-  listRecurringCompletionsRange,
-  undoRecurringCompletion,
-  updateRecurringCompletion,
-} from "../api/recurring";
+  listHabits,
+  listHabitCompletionsRange,
+  undoHabitCompletion,
+  updateHabitCompletion,
+} from "../api/habits";
 import { listProjects } from "../api/projects";
 
-type HistoryType = "all" | "tasks" | "recurring";
+type HistoryType = "all" | "tasks" | "habits";
 
 function isoDaysAgo(days: number) {
   const d = new Date();
@@ -34,9 +34,9 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
     queryFn: listProjects,
   });
 
-  const { data: recurringItems = [] } = useQuery({
-    queryKey: ["recurring"],
-    queryFn: listRecurring,
+  const { data: habits = [] } = useQuery({
+    queryKey: ["habits"],
+    queryFn: listHabits,
   });
 
   const { data: completedTasks = [] } = useQuery({
@@ -51,16 +51,13 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
       }),
   });
 
-  const { data: recurringCompletions = [] } = useQuery({
-    queryKey: ["recurring", "completions", "range", start, end],
-    queryFn: () => listRecurringCompletionsRange(start, end),
+  const { data: habitCompletions = [] } = useQuery({
+    queryKey: ["habits", "completions", "range", start, end],
+    queryFn: () => listHabitCompletionsRange(start, end),
   });
 
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
-  const recurringById = useMemo(
-    () => new Map(recurringItems.map((r) => [r.id, r])),
-    [recurringItems]
-  );
+  const habitsById = useMemo(() => new Map(habits.map((h) => [h.id, h])), [habits]);
 
   const availableTags = useMemo(() => {
     const tags = new Set<string>();
@@ -81,7 +78,7 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
-  const saveRecurringNotes = useMutation({
+  const saveHabitNotes = useMutation({
     mutationFn: ({
       id,
       date,
@@ -90,19 +87,19 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
       id: string;
       date: string;
       notes: string;
-    }) => updateRecurringCompletion(id, date, notes),
+    }) => updateHabitCompletion(id, date, notes),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["recurring", "completions", "range", start, end] }),
+      queryClient.invalidateQueries({ queryKey: ["habits", "completions", "range", start, end] }),
   });
 
-  const undoRecurring = useMutation({
-    mutationFn: ({ id, date }: { id: string; date: string }) => undoRecurringCompletion(id, date),
+  const undoHabit = useMutation({
+    mutationFn: ({ id, date }: { id: string; date: string }) => undoHabitCompletion(id, date),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["recurring", "completions", "range", start, end] }),
+      queryClient.invalidateQueries({ queryKey: ["habits", "completions", "range", start, end] }),
   });
 
   const [notesEditor, setNotesEditor] = useState<{
-    mode: "task" | "recurring";
+    mode: "task" | "habit";
     id: string;
     date?: string;
     title: string;
@@ -118,26 +115,26 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
   }, [completedTasks, projectFilter, tagFilter]);
 
   const grouped = useMemo(() => {
-    const map = new Map<string, { tasks: typeof filteredTasks; recurring: typeof recurringCompletions }>();
+    const map = new Map<string, { tasks: typeof filteredTasks; habits: typeof habitCompletions }>();
     const add = (key: string) => {
-      if (!map.has(key)) map.set(key, { tasks: [], recurring: [] });
+      if (!map.has(key)) map.set(key, { tasks: [], habits: [] });
       return map.get(key)!;
     };
 
-    if (typeFilter !== "recurring") {
+    if (typeFilter !== "habits") {
       for (const task of filteredTasks) {
         const day = task.completed_at ? task.completed_at.slice(0, 10) : "unknown";
         add(day).tasks.push(task);
       }
     }
     if (typeFilter !== "tasks") {
-      for (const completion of recurringCompletions) {
-        add(completion.completed_date).recurring.push(completion);
+      for (const completion of habitCompletions) {
+        add(completion.completed_date).habits.push(completion);
       }
     }
 
     return Array.from(map.entries()).sort(([a], [b]) => (a < b ? 1 : -1));
-  }, [filteredTasks, recurringCompletions, typeFilter]);
+  }, [filteredTasks, habitCompletions, typeFilter]);
 
   return (
     <div className="space-y-6">
@@ -198,7 +195,7 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
           >
             <option value="all">All</option>
             <option value="tasks">Tasks</option>
-            <option value="recurring">Recurring</option>
+            <option value="habits">Habits</option>
           </select>
 
           <select
@@ -240,7 +237,7 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">{new Date(day).toLocaleDateString()}</h3>
               <span className="text-xs text-slate-500">
-                {items.tasks.length + items.recurring.length} items
+                {items.tasks.length + items.habits.length} items
               </span>
             </div>
 
@@ -282,14 +279,14 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
                 </div>
               ))}
 
-              {items.recurring.map((c) => {
-                const item = recurringById.get(c.recurring_item_id);
+              {items.habits.map((c) => {
+                const item = habitsById.get(c.habit_id);
                 return (
                   <div key={c.id} className="rounded-xl border border-slate-200 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="font-semibold text-slate-900">{item?.name || "Recurring item"}</p>
-                        <p className="text-xs text-slate-500">Recurring completion</p>
+                        <p className="font-semibold text-slate-900">{item?.name || "Habit"}</p>
+                        <p className="text-xs text-slate-500">Habit completion</p>
                         {c.completion_notes && (
                           <p className="mt-1 text-sm text-slate-700">{c.completion_notes}</p>
                         )}
@@ -299,10 +296,10 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
                           className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50"
                           onClick={() =>
                             setNotesEditor({
-                              mode: "recurring",
-                              id: c.recurring_item_id,
+                              mode: "habit",
+                              id: c.habit_id,
                               date: c.completed_date,
-                              title: item?.name || "Recurring item",
+                              title: item?.name || "Habit",
                               notes: c.completion_notes || "",
                             })
                           }
@@ -311,7 +308,7 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
                         </button>
                         <button
                           className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50"
-                          onClick={() => undoRecurring.mutate({ id: c.recurring_item_id, date: c.completed_date })}
+                          onClick={() => undoHabit.mutate({ id: c.habit_id, date: c.completed_date })}
                         >
                           Undo
                         </button>
@@ -347,7 +344,7 @@ export default function History({ embedded = false }: { embedded?: boolean }) {
                 if (notesEditor.mode === "task") {
                   saveTaskNotes.mutate({ id: notesEditor.id, notes: notesEditor.notes });
                 } else {
-                  saveRecurringNotes.mutate({
+                  saveHabitNotes.mutate({
                     id: notesEditor.id,
                     date: notesEditor.date!,
                     notes: notesEditor.notes,

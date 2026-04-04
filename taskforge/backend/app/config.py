@@ -5,5 +5,5 @@ SYSTEM_USER_ID = UUID(os.getenv("SYSTEM_USER_ID", "00000000-0000-0000-0000-00000
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg://taskforge:taskforge@db:5432/taskforge",
+    "postgresql+pg8000://taskforge:taskforge@db:5432/taskforge",
 )

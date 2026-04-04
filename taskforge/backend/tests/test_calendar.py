@@ -7,8 +7,8 @@ def test_calendar_feed(client):
         json={"name": "Feed Task", "due_date": "2026-04-01"},
     ).json()
 
-    recurring = client.post(
-        "/api/recurring",
+    habit = client.post(
+        "/api/habits",
         json={"name": "Feed Habit", "cadence_type": "daily"},
     ).json()
 
@@ -24,5 +24,5 @@ def test_calendar_feed(client):
     feed = client.get("/api/calendar/feed", params={"start": "2026-04-01", "end": "2026-04-02"}).json()
     types = {item["extendedProps"]["type"] for item in feed}
     assert "task" in types
-    assert "recurring" in types
+    assert "habit" in types
     assert "event" in types

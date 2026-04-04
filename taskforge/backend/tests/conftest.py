@@ -1,9 +1,7 @@
 import os
 import sys
-from contextlib import contextmanager
 from uuid import UUID
 
-import psycopg
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
@@ -18,20 +16,35 @@ from app.main import app
 
 
 def _build_test_db_url() -> str:
-    url = make_url(os.getenv("DATABASE_URL", "postgresql+psycopg://taskforge:taskforge@localhost:5432/taskforge"))
+    url = make_url(
+        os.getenv(
+            "DATABASE_URL",
+            "postgresql+pg8000://taskforge:taskforge@localhost:5432/taskforge",
+        )
+    )
     test_db = os.getenv("TEST_DATABASE_NAME", f"{url.database}_test")
     return url.set(database=test_db).render_as_string(hide_password=False)
 
 
 def _ensure_test_db(db_url: str) -> None:
     url = make_url(db_url)
-    admin_url = url.set(drivername="postgresql", database="postgres")
-    with psycopg.connect(admin_url.render_as_string(hide_password=False), autocommit=True) as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (url.database,))
-            exists = cur.fetchone()
+    admin_url = url.set(database="postgres")
+    admin_engine = create_engine(
+        admin_url.render_as_string(hide_password=False),
+        isolation_level="AUTOCOMMIT",
+        pool_pre_ping=True,
+    )
+    try:
+        with admin_engine.connect() as conn:
+            exists = conn.execute(
+                text("SELECT 1 FROM pg_database WHERE datname = :name"),
+                {"name": url.database},
+            ).scalar()
             if not exists:
-                cur.execute(f'CREATE DATABASE "{url.database}"')
+                db_name = (url.database or "").replace('"', '""')
+                conn.execute(text(f'CREATE DATABASE "{db_name}"'))
+    finally:
+        admin_engine.dispose()
 
 
 @pytest.fixture(scope="session")

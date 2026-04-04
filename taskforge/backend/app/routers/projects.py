@@ -8,7 +8,7 @@ from ..config import SYSTEM_USER_ID
 from ..database import get_db
 from ..models.project import Project
 from ..models.task import Task
-from ..models.recurring import RecurringItem
+from ..models.habits import Habit
 from ..schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -67,7 +67,7 @@ def delete_project(project_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
 
     db.query(Task).filter(Task.project_id == project_id).update({"project_id": None})
-    db.query(RecurringItem).filter(RecurringItem.project_id == project_id).update({"project_id": None})
+    db.query(Habit).filter(Habit.project_id == project_id).update({"project_id": None})
     project.is_archived = True
 
     db.commit()

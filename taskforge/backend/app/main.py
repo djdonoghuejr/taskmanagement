@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import tasks, recurring, events, calendar, projects, tags
+from .routers import tasks, habits, events, calendar, projects, tags
 
 app = FastAPI(title="TaskForge API")
 
@@ -14,7 +14,7 @@ app.add_middleware(
 )
 
 app.include_router(tasks.router)
-app.include_router(recurring.router)
+app.include_router(habits.router)
 app.include_router(events.router)
 app.include_router(calendar.router)
 app.include_router(projects.router)

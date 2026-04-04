@@ -2,48 +2,48 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listTasks } from "../api/tasks";
 import {
-  listRecurring,
-  completeRecurring,
-  undoRecurringCompletion,
-  getRecurringMetrics,
-  listRecurringCompletions,
-} from "../api/recurring";
-import RecurringItemRow from "../components/RecurringItemRow";
+  listHabits,
+  completeHabit,
+  undoHabitCompletion,
+  getHabitMetrics,
+  listHabitCompletions,
+} from "../api/habits";
+import HabitRow from "../components/HabitRow";
 import TaskCard from "../components/TaskCard";
 import MetricsCard from "../components/MetricsCard";
-import { isDueOn } from "../utils/recurring";
+import { isDueOn } from "../utils/habits";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: tasks = [] } = useQuery({ queryKey: ["tasks"], queryFn: listTasks });
-  const { data: recurring = [] } = useQuery({
-    queryKey: ["recurring"],
-    queryFn: listRecurring,
+  const { data: habits = [] } = useQuery({
+    queryKey: ["habits"],
+    queryFn: listHabits,
   });
   const { data: completions = [] } = useQuery({
-    queryKey: ["recurring", "completions", today],
-    queryFn: () => listRecurringCompletions(today),
+    queryKey: ["habits", "completions", today],
+    queryFn: () => listHabitCompletions(today),
   });
   const { data: metrics = [] } = useQuery({
-    queryKey: ["recurring", "metrics"],
-    queryFn: getRecurringMetrics,
+    queryKey: ["habits", "metrics"],
+    queryFn: getHabitMetrics,
   });
 
-  const completionIds = new Set(completions.map((c) => c.recurring_item_id));
+  const completionIds = new Set(completions.map((c) => c.habit_id));
   const todayDate = new Date();
-  const dueToday = recurring.filter((item) => isDueOn(todayDate, item));
+  const dueToday = habits.filter((item) => isDueOn(todayDate, item));
 
   const toggleCompletion = useMutation({
     mutationFn: async (id: string) => {
       if (completionIds.has(id)) {
-        return undoRecurringCompletion(id, today);
+        return undoHabitCompletion(id, today);
       }
-      return completeRecurring(id);
+      return completeHabit(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recurring", "completions", today] });
+      queryClient.invalidateQueries({ queryKey: ["habits", "completions", today] });
     },
   });
 
@@ -75,14 +75,15 @@ export default function Dashboard() {
       </div>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold">Today's Recurring Items</h3>
+        <h3 className="text-lg font-semibold">Today's Habits</h3>
         <div className="grid gap-2">
-          {dueToday.map((item) => (
-            <RecurringItemRow
-              key={item.id}
-              item={item}
-              checked={completionIds.has(item.id)}
-              onToggle={() => toggleCompletion.mutate(item.id)}
+          {dueToday.map((habit) => (
+            <HabitRow
+              key={habit.id}
+              habit={habit}
+              checked={completionIds.has(habit.id)}
+              onToggle={() => toggleCompletion.mutate(habit.id)}
+              onOpen={() => {}}
             />
           ))}
         </div>
@@ -108,12 +109,12 @@ export default function Dashboard() {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold">Recurring Metrics</h3>
+        <h3 className="text-lg font-semibold">Habit Metrics</h3>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {metrics.map((metric) => (
             <MetricsCard
-              key={metric.recurring_item_id}
-              title={metric.recurring_item_id.slice(0, 8)}
+              key={metric.habit_id}
+              title={metric.habit_id.slice(0, 8)}
               metrics={metric}
             />
           ))}

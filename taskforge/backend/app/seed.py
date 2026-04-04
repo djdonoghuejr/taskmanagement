@@ -5,7 +5,7 @@ from .config import SYSTEM_USER_ID
 from .database import SessionLocal
 from .models.project import Project
 from .models.task import Task
-from .models.recurring import RecurringItem
+from .models.habits import Habit
 from .models.event import CalendarEvent
 from .models.enums import CadenceType
 
@@ -38,7 +38,7 @@ def seed():
         )
         db.add(task)
 
-        recurring = RecurringItem(
+        habit = Habit(
             user_id=SYSTEM_USER_ID,
             project_id=project.id,
             name="Daily check-in",
@@ -46,7 +46,7 @@ def seed():
             cadence_type=CadenceType.daily,
             is_active=True,
         )
-        db.add(recurring)
+        db.add(habit)
 
         event = CalendarEvent(
             user_id=SYSTEM_USER_ID,

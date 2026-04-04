@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { listTasks, completeTask } from "../api/tasks";
-import {
-  listRecurring,
-  completeRecurring,
-  undoRecurringCompletion,
-  listRecurringCompletions,
-} from "../api/recurring";
-import { isDueOn } from "../utils/recurring";
+import { completeTask, listTasks } from "../api/tasks";
+import { listHabits, listHabitCompletions } from "../api/habits";
+import { isDueOn } from "../utils/habits";
+import TaskDialog from "../components/TaskDialog";
+import HabitDialog from "../components/HabitDialog";
+import BlockedCompleteDialog from "../components/BlockedCompleteDialog";
+import { Habit, Task } from "../types";
 
 function CheckIcon({ className }: { className?: string }) {
   return (
@@ -39,44 +38,52 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
     queryFn: () => listTasks({ status: "pending", due_before: today, order_by: "due_date" }),
   });
 
-  const { data: recurring = [] } = useQuery({
-    queryKey: ["recurring"],
-    queryFn: listRecurring,
+  const { data: habits = [] } = useQuery({
+    queryKey: ["habits"],
+    queryFn: listHabits,
   });
 
   const { data: completions = [] } = useQuery({
-    queryKey: ["recurring", "completions", today],
-    queryFn: () => listRecurringCompletions(today),
+    queryKey: ["habits", "completions", today],
+    queryFn: () => listHabitCompletions(today),
   });
 
   const completionIds = useMemo(
-    () => new Set(completions.map((c) => c.recurring_item_id)),
+    () => new Set(completions.map((c) => c.habit_id)),
     [completions]
   );
-  const dueTodayRecurring = useMemo(() => {
+  const dueTodayHabits = useMemo(() => {
     const now = new Date();
-    return recurring.filter((item) => isDueOn(now, item));
-  }, [recurring]);
+    return habits.filter((item) => isDueOn(now, item));
+  }, [habits]);
 
-  const [completeTaskTarget, setCompleteTaskTarget] = useState<string | null>(null);
-  const [completeRecurringTarget, setCompleteRecurringTarget] = useState<string | null>(null);
-  const [notes, setNotes] = useState("");
+  const dueItems = useMemo(() => {
+    const items: Array<
+      | { kind: "task"; id: string; task: (typeof tasks)[number] }
+      | { kind: "habit"; id: string; habit: (typeof dueTodayHabits)[number] }
+    > = [];
 
-  const completeTaskMutation = useMutation({
-    mutationFn: ({ id, notes }: { id: string; notes?: string }) => completeTask(id, notes),
+    for (const task of tasks) items.push({ kind: "task", id: task.id, task });
+    for (const habit of dueTodayHabits) items.push({ kind: "habit", id: habit.id, habit });
+
+    items.sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === "task" ? -1 : 1;
+      const aName = a.kind === "task" ? a.task.name : a.habit.name;
+      const bName = b.kind === "task" ? b.task.name : b.habit.name;
+      return aName.localeCompare(bName);
+    });
+    return items;
+  }, [tasks, dueTodayHabits]);
+
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
+  const [focusTaskCompletionNotes, setFocusTaskCompletionNotes] = useState(false);
+  const [blockedCompleteTarget, setBlockedCompleteTarget] = useState<Task | null>(null);
+
+  const quickComplete = useMutation({
+    mutationFn: (id: string) => completeTask(id, undefined),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-  });
-
-  const completeRecurringMutation = useMutation({
-    mutationFn: ({ id, notes }: { id: string; notes?: string }) => completeRecurring(id, notes),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["recurring", "completions", today] }),
-  });
-
-  const undoRecurringMutation = useMutation({
-    mutationFn: (id: string) => undoRecurringCompletion(id, today),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["recurring", "completions", today] }),
   });
 
   const overdueCount = useMemo(() => {
@@ -113,66 +120,97 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
       )}
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold">Due Today</h3>
-        <div className="grid gap-2">
-          {tasks.length === 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              No tasks due today.
-            </div>
-          )}
-          {tasks.map((task) => (
-            <button
-              key={task.id}
-              className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50"
-              onClick={() => {
-                setCompleteTaskTarget(task.id);
-                setCompleteRecurringTarget(null);
-                setNotes("");
-              }}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-slate-900">{task.name}</p>
-                  {task.description && <p className="mt-1 text-sm text-slate-600">{task.description}</p>}
-                </div>
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-300">
-                  <CheckIcon className="h-6 w-6 text-slate-700" />
-                </span>
-              </div>
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold">Due Today</h3>
+          <button
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white"
+            onClick={() => setCreateTaskOpen(true)}
+          >
+            Add Task
+          </button>
         </div>
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold">Recurring Today</h3>
         <div className="grid gap-2">
-          {dueTodayRecurring.length === 0 && (
+          {dueItems.length === 0 && (
             <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              No recurring items due today.
+              Nothing due today.
             </div>
           )}
-          {dueTodayRecurring.map((item) => {
-            const checked = completionIds.has(item.id);
+          {dueItems.map((item) => {
+            if (item.kind === "task") {
+              const task = item.task;
+              return (
+                <button
+                  key={task.id}
+                  className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50"
+                  onClick={() => {
+                    setSelectedTask(task);
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-slate-900">{task.name}</p>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                          Recently Added
+                        </span>
+                      </div>
+                      {task.description && (
+                        <p className="mt-1 text-sm text-slate-600">{task.description}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <button
+                        type="button"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 hover:bg-slate-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (task.status === "blocked") {
+                            setBlockedCompleteTarget(task);
+                            return;
+                          }
+                          quickComplete.mutate(task.id);
+                        }}
+                        aria-label="Complete task"
+                      >
+                        <CheckIcon className="h-6 w-6 text-slate-700" />
+                      </button>
+                      <button
+                        type="button"
+                        className="mt-1 block text-xs text-slate-600 hover:text-slate-900"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFocusTaskCompletionNotes(true);
+                          setSelectedTask(task);
+                        }}
+                      >
+                        Complete with Notes
+                      </button>
+                    </div>
+                  </div>
+                </button>
+              );
+            }
+
+            const habit = item.habit;
+            const checked = completionIds.has(habit.id);
             return (
               <button
-                key={item.id}
+                key={habit.id}
                 className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50"
                 onClick={() => {
-                  if (checked) {
-                    undoRecurringMutation.mutate(item.id);
-                    return;
-                  }
-                  setCompleteRecurringTarget(item.id);
-                  setCompleteTaskTarget(null);
-                  setNotes("");
+                  setSelectedHabit(habit);
                 }}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-slate-900">{item.name}</p>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-slate-900">{habit.name}</p>
+                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">
+                        Habit
+                      </span>
+                    </div>
                     <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
-                      {item.cadence_type}
+                      {habit.cadence_type}
                     </p>
                   </div>
                   <span
@@ -189,62 +227,34 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
         </div>
       </section>
 
-      {(completeTaskTarget || completeRecurringTarget) && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-lg font-semibold">Add Notes (Optional)</h3>
-            <button
-              className="text-sm text-slate-500"
-              onClick={() => {
-                setCompleteTaskTarget(null);
-                setCompleteRecurringTarget(null);
-              }}
-            >
-              Close
-            </button>
-          </div>
-          <textarea
-            className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2"
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="How did it go?"
-          />
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm text-white"
-              onClick={() => {
-                if (completeTaskTarget) {
-                  completeTaskMutation.mutate({ id: completeTaskTarget, notes: notes || undefined });
-                } else if (completeRecurringTarget) {
-                  completeRecurringMutation.mutate({
-                    id: completeRecurringTarget,
-                    notes: notes || undefined,
-                  });
-                }
-                setCompleteTaskTarget(null);
-                setCompleteRecurringTarget(null);
-              }}
-            >
-              Save & Complete
-            </button>
-            <button
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm"
-              onClick={() => {
-                if (completeTaskTarget) {
-                  completeTaskMutation.mutate({ id: completeTaskTarget, notes: undefined });
-                } else if (completeRecurringTarget) {
-                  completeRecurringMutation.mutate({ id: completeRecurringTarget, notes: undefined });
-                }
-                setCompleteTaskTarget(null);
-                setCompleteRecurringTarget(null);
-              }}
-            >
-              Complete Without Notes
-            </button>
-          </div>
-        </div>
-      )}
+      <TaskDialog open={createTaskOpen} task={null} initialDueDate={today} onClose={() => setCreateTaskOpen(false)} />
+      <TaskDialog
+        open={Boolean(selectedTask)}
+        task={selectedTask}
+        focusCompletionNotes={focusTaskCompletionNotes}
+        onClose={() => {
+          setSelectedTask(null);
+          setFocusTaskCompletionNotes(false);
+        }}
+      />
+      <HabitDialog
+        open={Boolean(selectedHabit)}
+        habit={selectedHabit}
+        today={today}
+        completedToday={selectedHabit ? completionIds.has(selectedHabit.id) : false}
+        onClose={() => setSelectedHabit(null)}
+      />
+
+      <BlockedCompleteDialog
+        open={Boolean(blockedCompleteTarget)}
+        taskId={blockedCompleteTarget?.id || null}
+        taskName={blockedCompleteTarget?.name || "Task"}
+        onClose={() => setBlockedCompleteTarget(null)}
+        onViewBlockers={() => {
+          if (!blockedCompleteTarget) return;
+          setSelectedTask(blockedCompleteTarget);
+        }}
+      />
     </div>
   );
 }

@@ -20,6 +20,7 @@ docker compose up --build
 - Uses a fixed system user ID: `00000000-0000-0000-0000-000000000001`.
 - DB timestamps are stored in UTC.
 - Seed data runs on backend startup when `SEED_DATA=true`.
+- Backend Postgres driver is `pg8000` (pure Python) via `postgresql+pg8000://...` URLs.
 
 ## Local Dev (without Docker)
 

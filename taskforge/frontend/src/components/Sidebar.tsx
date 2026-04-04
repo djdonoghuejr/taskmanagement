@@ -23,8 +23,8 @@ export default function Sidebar() {
         <NavLink to="/tasks" className={navClass}>
           Tasks
         </NavLink>
-        <NavLink to="/recurring" className={navClass}>
-          Recurring
+        <NavLink to="/habits" className={navClass}>
+          Habits
         </NavLink>
         <NavLink to="/calendar" className={navClass}>
           Calendar
