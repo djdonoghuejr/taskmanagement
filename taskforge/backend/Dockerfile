@@ -9,4 +9,7 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN chmod +x /app/start.sh
+
+# Render sets PORT; default to 8000 for local usage.
+CMD ["/app/start.sh"]
