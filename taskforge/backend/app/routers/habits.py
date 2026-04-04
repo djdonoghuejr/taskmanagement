@@ -5,9 +5,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from ..config import SYSTEM_USER_ID
 from ..database import get_db
+from ..deps.auth import get_current_user
 from ..models.habits import Habit, HabitCompletion
+from ..models.user import User
 from ..schemas.habits import (
     HabitCreate,
     HabitRead,
@@ -23,19 +24,19 @@ router = APIRouter(prefix="/api/habits", tags=["habits"])
 
 
 @router.get("", response_model=List[HabitRead])
-def list_habits(db: Session = Depends(get_db)):
+def list_habits(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return (
         db.query(Habit)
-        .filter(Habit.user_id == SYSTEM_USER_ID)
+        .filter(Habit.user_id == user.id)
         .order_by(Habit.created_at.asc())
         .all()
     )
 
 
 @router.post("", response_model=HabitRead)
-def create_habit(payload: HabitCreate, db: Session = Depends(get_db)):
+def create_habit(payload: HabitCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     habit = Habit(
-        user_id=SYSTEM_USER_ID,
+        user_id=user.id,
         name=payload.name,
         description=payload.description,
         project_id=payload.project_id,
@@ -51,10 +52,12 @@ def create_habit(payload: HabitCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{habit_id}", response_model=HabitRead)
-def update_habit(habit_id: UUID, payload: HabitUpdate, db: Session = Depends(get_db)):
+def update_habit(
+    habit_id: UUID, payload: HabitUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     habit = (
         db.query(Habit)
-        .filter(Habit.id == habit_id, Habit.user_id == SYSTEM_USER_ID)
+        .filter(Habit.id == habit_id, Habit.user_id == user.id)
         .first()
     )
     if not habit:
@@ -72,11 +75,12 @@ def update_habit(habit_id: UUID, payload: HabitUpdate, db: Session = Depends(get
 def complete_habit(
     habit_id: UUID,
     payload: HabitCompletionCreate = HabitCompletionCreate(),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     habit = (
         db.query(Habit)
-        .filter(Habit.id == habit_id, Habit.user_id == SYSTEM_USER_ID)
+        .filter(Habit.id == habit_id, Habit.user_id == user.id)
         .first()
     )
     if not habit:
@@ -110,6 +114,7 @@ def update_completion(
     habit_id: UUID,
     payload: HabitCompletionUpdate,
     date_str: Optional[str] = Query(None, alias="date"),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     target_date = date.today() if date_str is None else date.fromisoformat(date_str)
@@ -119,7 +124,7 @@ def update_completion(
         .filter(
             HabitCompletion.habit_id == habit_id,
             HabitCompletion.completed_date == target_date,
-            Habit.user_id == SYSTEM_USER_ID,
+            Habit.user_id == user.id,
         )
         .first()
     )
@@ -138,15 +143,18 @@ def update_completion(
 def undo_completion(
     habit_id: UUID,
     date_str: Optional[str] = Query(None, alias="date"),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     target_date = date.today() if date_str is None else date.fromisoformat(date_str)
 
     completion = (
         db.query(HabitCompletion)
+        .join(Habit, HabitCompletion.habit_id == Habit.id)
         .filter(
             HabitCompletion.habit_id == habit_id,
             HabitCompletion.completed_date == target_date,
+            Habit.user_id == user.id,
         )
         .first()
     )
@@ -157,10 +165,10 @@ def undo_completion(
 
 
 @router.delete("/{habit_id}")
-def delete_habit(habit_id: UUID, db: Session = Depends(get_db)):
+def delete_habit(habit_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     habit = (
         db.query(Habit)
-        .filter(Habit.id == habit_id, Habit.user_id == SYSTEM_USER_ID)
+        .filter(Habit.id == habit_id, Habit.user_id == user.id)
         .first()
     )
     if not habit:
@@ -175,6 +183,7 @@ def list_completions(
     date_str: Optional[str] = Query(None, alias="date"),
     start: Optional[str] = Query(None),
     end: Optional[str] = Query(None),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if (start is None) != (end is None):
@@ -183,7 +192,7 @@ def list_completions(
     query = (
         db.query(HabitCompletion)
         .join(Habit, HabitCompletion.habit_id == Habit.id)
-        .filter(Habit.user_id == SYSTEM_USER_ID)
+        .filter(Habit.user_id == user.id)
     )
 
     if start is not None and end is not None:
@@ -202,6 +211,11 @@ def list_completions(
 
 
 @router.get("/metrics", response_model=List[HabitMetrics])
-def habit_metrics(db: Session = Depends(get_db)):
-    ids = [row.id for row in db.query(Habit.id).filter(Habit.is_active == True).all()]
+def habit_metrics(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    ids = [
+        row.id
+        for row in db.query(Habit.id)
+        .filter(Habit.user_id == user.id, Habit.is_active == True)
+        .all()
+    ]
     return placeholder_metrics(ids)

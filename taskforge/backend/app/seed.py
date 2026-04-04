@@ -1,13 +1,15 @@
 from datetime import date, datetime, timezone
 
 import os
-from .config import SYSTEM_USER_ID
 from .database import SessionLocal
+from .models.user import User
+from .models.auth_identity import AuthIdentity
 from .models.project import Project
 from .models.task import Task
 from .models.habits import Habit
 from .models.event import CalendarEvent
 from .models.enums import CadenceType
+from .services.auth import hash_password, normalize_email, utcnow
 
 
 def seed():
@@ -15,12 +17,28 @@ def seed():
         return
     db = SessionLocal()
     try:
-        existing = db.query(Project).count()
-        if existing > 0:
+        seed_email = normalize_email(os.getenv("SEED_EMAIL", "demo@taskforge.local"))
+        seed_password = os.getenv("SEED_PASSWORD", "taskforge-demo-password")
+
+        existing_user = db.query(User).filter(User.email == seed_email).first()
+        if existing_user:
             return
 
+        user = User(email=seed_email, email_verified_at=utcnow())
+        db.add(user)
+        db.flush()
+
+        db.add(
+            AuthIdentity(
+                user_id=user.id,
+                provider="local",
+                provider_subject=seed_email,
+                password_hash=hash_password(seed_password),
+            )
+        )
+
         project = Project(
-            user_id=SYSTEM_USER_ID,
+            user_id=user.id,
             name="Personal",
             color="#3B82F6",
             description="Default project",
@@ -29,7 +47,7 @@ def seed():
         db.flush()
 
         task = Task(
-            user_id=SYSTEM_USER_ID,
+            user_id=user.id,
             project_id=project.id,
             name="Welcome to TaskForge",
             description="Edit or complete this task.",
@@ -39,7 +57,7 @@ def seed():
         db.add(task)
 
         habit = Habit(
-            user_id=SYSTEM_USER_ID,
+            user_id=user.id,
             project_id=project.id,
             name="Daily check-in",
             description="Mark this each day.",
@@ -49,7 +67,7 @@ def seed():
         db.add(habit)
 
         event = CalendarEvent(
-            user_id=SYSTEM_USER_ID,
+            user_id=user.id,
             title="Sample event",
             description="You can delete this.",
             start_time=datetime.now(tz=timezone.utc),

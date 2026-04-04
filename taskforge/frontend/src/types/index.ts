@@ -104,3 +104,10 @@ export interface Tag {
   created_at: string;
   updated_at: string;
 }
+
+export interface UserMe {
+  id: string;
+  email: string;
+  email_verified_at?: string | null;
+  providers: string[];
+}

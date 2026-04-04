@@ -20,6 +20,11 @@ target_metadata = Base.metadata
 
 
 def get_url():
+    # Prefer an explicitly overridden sqlalchemy.url (useful for tests).
+    # Ignore the default placeholder value in alembic.ini.
+    url = config.get_main_option("sqlalchemy.url")
+    if url and not url.startswith("driver://"):
+        return url
     return DATABASE_URL
 
 

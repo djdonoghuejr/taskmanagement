@@ -10,7 +10,7 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)

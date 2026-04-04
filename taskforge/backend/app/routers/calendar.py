@@ -5,11 +5,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from ..config import SYSTEM_USER_ID
 from ..database import get_db
+from ..deps.auth import get_current_user
 from ..models.task import Task
 from ..models.habits import Habit
 from ..models.event import CalendarEvent
+from ..models.user import User
 from ..services.habits_scheduler import is_due_on
 
 router = APIRouter(prefix="/api/calendar", tags=["calendar"])
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 def calendar_feed(
     start: date = Query(...),
     end: date = Query(...),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     events: List[dict] = []
@@ -26,7 +28,7 @@ def calendar_feed(
     tasks = (
         db.query(Task)
         .filter(
-            Task.user_id == SYSTEM_USER_ID,
+            Task.user_id == user.id,
             Task.due_date.isnot(None),
             Task.due_date >= start,
             Task.due_date <= end,
@@ -47,7 +49,7 @@ def calendar_feed(
 
     habits = (
         db.query(Habit)
-        .filter(Habit.user_id == SYSTEM_USER_ID, Habit.is_active == True)
+        .filter(Habit.user_id == user.id, Habit.is_active == True)
         .all()
     )
     cursor = start
@@ -69,7 +71,7 @@ def calendar_feed(
     calendar_events = (
         db.query(CalendarEvent)
         .filter(
-            CalendarEvent.user_id == SYSTEM_USER_ID,
+            CalendarEvent.user_id == user.id,
             CalendarEvent.start_time <= datetime.combine(end, datetime.min.time(), tzinfo=timezone.utc),
             CalendarEvent.end_time >= datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc),
         )

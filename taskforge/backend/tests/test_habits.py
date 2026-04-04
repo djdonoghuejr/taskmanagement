@@ -1,6 +1,6 @@
 from datetime import date
+from uuid import UUID
 
-from app.config import SYSTEM_USER_ID
 from app.models.enums import CadenceType
 from app.models.habits import Habit, HabitCompletion
 
@@ -46,8 +46,9 @@ def test_habits_metrics_shape(client):
 
 
 def test_habits_completions_range(client, db_session):
+    user_id = UUID(client.get("/api/auth/me").json()["id"])
     habit = Habit(
-        user_id=SYSTEM_USER_ID,
+        user_id=user_id,
         name="Range",
         cadence_type=CadenceType.daily,
         is_active=True,
