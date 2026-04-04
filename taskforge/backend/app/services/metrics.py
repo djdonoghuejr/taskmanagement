@@ -1,15 +1,15 @@
 from typing import List
 from uuid import UUID
 
-from ..schemas.recurring import RecurringMetrics
+from ..schemas.habits import HabitMetrics
 
 
-def placeholder_metrics(recurring_item_ids: List[UUID]) -> List[RecurringMetrics]:
+def placeholder_metrics(habit_ids: List[UUID]) -> List[HabitMetrics]:
     metrics = []
-    for rid in recurring_item_ids:
+    for habit_id in habit_ids:
         metrics.append(
-            RecurringMetrics(
-                recurring_item_id=rid,
+            HabitMetrics(
+                habit_id=habit_id,
                 completion_rate_7d=0.0,
                 completion_rate_30d=0.0,
                 completion_rate_all_time=0.0,

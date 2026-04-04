@@ -27,15 +27,15 @@ test("today -> history: task completion with notes + reopen", async ({ page }) =
 
   const name = `PW Today Task ${Date.now()}`;
   await page.goto("/tasks");
-  await expect(page.getByRole("heading", { name: "To-Do List" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
 
   const today = await browserIsoToday(page);
 
-  await page.getByPlaceholder("New task").fill(name);
-  await page.locator('input[type="date"]').first().fill(today);
   await page.getByRole("button", { name: "Add Task" }).click();
+  await page.getByPlaceholder("Task name").fill(name);
+  await page.locator('input[type="date"]').first().fill(today);
+  await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText(name).first()).toBeVisible();
-  await expect(page.getByText(today).first()).toBeVisible();
 
   await page.goto("/?view=today");
   await failOnViteOverlay(page);
@@ -47,9 +47,9 @@ test("today -> history: task completion with notes + reopen", async ({ page }) =
   await expect(page.getByText(name).first()).toBeVisible({ timeout: 15000 });
 
   await page.getByText(name).first().click();
-  await expect(page.getByText("Add Notes (Optional)")).toBeVisible();
-  await page.getByPlaceholder("How did it go?").fill("Did it via Playwright");
-  await page.getByRole("button", { name: "Save & Complete" }).click();
+  await page.getByPlaceholder("What happened?").fill("Did it via Playwright");
+  await page.getByRole("button", { name: "Complete" }).click();
+  await page.getByRole("button", { name: "Close" }).click();
 
   await page.goto("/?view=history");
   await failOnViteOverlay(page);
@@ -64,7 +64,7 @@ test("today -> history: task completion with notes + reopen", async ({ page }) =
   await expect(page.getByText(name)).toHaveCount(0);
 });
 
-test("today -> history: recurring completion with notes + edit + undo", async ({ page }) => {
+test("today -> history: habit completion with notes + edit + undo", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("pageerror", (err) => consoleErrors.push(err.stack || err.message));
   page.on("console", (msg) => {
@@ -73,11 +73,12 @@ test("today -> history: recurring completion with notes + edit + undo", async ({
 
   const name = `PW Daily ${Date.now()}`;
 
-  await page.goto("/recurring");
-  await expect(page.getByRole("heading", { name: "Recurring Checklist" })).toBeVisible();
+  await page.goto("/habits");
+  await expect(page.getByRole("heading", { name: "Habits" })).toBeVisible();
 
-  await page.getByPlaceholder("Recurring item").fill(name);
-  await page.getByRole("button", { name: "Add Recurring" }).click();
+  await page.getByRole("button", { name: "Add Habit" }).click();
+  await page.getByPlaceholder("Habit name").fill(name);
+  await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText(name).first()).toBeVisible();
 
   await page.goto("/?view=today");
@@ -86,12 +87,12 @@ test("today -> history: recurring completion with notes + edit + undo", async ({
     throw new Error(`Browser console errors:\n${consoleErrors.slice(0, 10).join("\n")}`);
   }
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByRole("heading", { name: "Recurring Today" })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Due Today" })).toBeVisible({ timeout: 15000 });
 
   await page.getByText(name).first().click();
-  await expect(page.getByText("Add Notes (Optional)")).toBeVisible();
   await page.getByPlaceholder("How did it go?").fill("Recurring done");
-  await page.getByRole("button", { name: "Save & Complete" }).click();
+  await page.getByRole("button", { name: "Complete Today" }).click();
+  await page.getByRole("button", { name: "Close" }).click();
 
   await page.goto("/?view=history");
   await failOnViteOverlay(page);
@@ -107,9 +108,15 @@ test("today -> history: recurring completion with notes + edit + undo", async ({
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Recurring updated").first()).toBeVisible();
 
-  const recurringCard = page.locator("div.rounded-xl").filter({ hasText: name }).filter({ hasText: "Recurring completion" }).first();
-  await recurringCard.getByRole("button", { name: "Undo" }).first().click();
-  await expect(page.locator("div.rounded-xl").filter({ hasText: name }).filter({ hasText: "Recurring completion" })).toHaveCount(0);
+  const habitCard = page
+    .locator("div.rounded-xl")
+    .filter({ hasText: name })
+    .filter({ hasText: "Habit completion" })
+    .first();
+  await habitCard.getByRole("button", { name: "Undo" }).first().click();
+  await expect(
+    page.locator("div.rounded-xl").filter({ hasText: name }).filter({ hasText: "Habit completion" })
+  ).toHaveCount(0);
 });
 
 test("upcoming: rescheduling moves task out of window", async ({ page }) => {
@@ -117,9 +124,10 @@ test("upcoming: rescheduling moves task out of window", async ({ page }) => {
   const dueSoon = isoDaysFromNow(3);
 
   await page.goto("/tasks");
-  await page.getByPlaceholder("New task").fill(name);
-  await page.locator('input[type="date"]').first().fill(dueSoon);
   await page.getByRole("button", { name: "Add Task" }).click();
+  await page.getByPlaceholder("Task name").fill(name);
+  await page.locator('input[type="date"]').first().fill(dueSoon);
+  await page.getByRole("button", { name: "Save" }).click();
 
   await page.goto("/?view=upcoming");
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();

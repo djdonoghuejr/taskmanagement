@@ -1,22 +1,27 @@
 import os
 import time
-from sqlalchemy.engine.url import make_url
-import psycopg
+from sqlalchemy import create_engine, text
 
 from .config import DATABASE_URL
 
 
 def wait_for_db(timeout_seconds: int = 30) -> None:
-    url = make_url(DATABASE_URL)
-    dsn = url.set(drivername="postgresql").render_as_string(hide_password=False)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+    )
     deadline = time.time() + timeout_seconds
-    while time.time() < deadline:
-        try:
-            with psycopg.connect(dsn) as conn:
+    try:
+        while time.time() < deadline:
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
                 return
-        except Exception:
-            time.sleep(1)
-    raise RuntimeError("Database not ready after waiting")
+            except Exception:
+                time.sleep(1)
+        raise RuntimeError("Database not ready after waiting")
+    finally:
+        engine.dispose()
 
 
 if __name__ == "__main__":

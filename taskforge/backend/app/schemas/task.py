@@ -13,7 +13,8 @@ class TaskBase(BaseModel):
     tags: List[str] = []
 
 class TaskCreate(TaskBase):
-    pass
+    blocked_by_ids: Optional[List[UUID]] = None
+    blocking_ids: Optional[List[UUID]] = None
 
 class TaskUpdate(BaseModel):
     name: Optional[str] = None
@@ -24,6 +25,9 @@ class TaskUpdate(BaseModel):
     status: Optional[TaskStatus] = None
     completed_at: Optional[datetime] = None
     completion_notes: Optional[str] = None
+    activity_comment: Optional[str] = None
+    blocked_by_ids: Optional[List[UUID]] = None
+    blocking_ids: Optional[List[UUID]] = None
 
 class TaskComplete(BaseModel):
     completion_notes: Optional[str] = None

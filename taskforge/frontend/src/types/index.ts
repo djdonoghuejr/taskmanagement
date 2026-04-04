@@ -1,4 +1,4 @@
-export type TaskStatus = "pending" | "completed";
+export type TaskStatus = "pending" | "blocked" | "completed";
 export type CadenceType = "daily" | "weekly" | "monthly" | "custom";
 
 export interface Project {
@@ -27,7 +27,30 @@ export interface Task {
   updated_at: string;
 }
 
-export interface RecurringItem {
+export interface TaskSummary {
+  id: string;
+  name: string;
+  status: TaskStatus;
+  due_date?: string | null;
+  project_id?: string | null;
+}
+
+export interface TaskDependencies {
+  blocked_by: TaskSummary[];
+  blocking: TaskSummary[];
+}
+
+export interface TaskActivity {
+  id: string;
+  task_id: string;
+  actor_user_id: string;
+  type: "created" | "comment" | "due_date_changed" | "status_changed" | string;
+  message?: string | null;
+  meta?: Record<string, any> | null;
+  created_at: string;
+}
+
+export interface Habit {
   id: string;
   user_id: string;
   project_id?: string | null;
@@ -41,16 +64,16 @@ export interface RecurringItem {
   updated_at: string;
 }
 
-export interface RecurringCompletion {
+export interface HabitCompletion {
   id: string;
-  recurring_item_id: string;
+  habit_id: string;
   completed_date: string;
   completed_at: string;
   completion_notes?: string | null;
 }
 
-export interface RecurringMetrics {
-  recurring_item_id: string;
+export interface HabitMetrics {
+  habit_id: string;
   completion_rate_7d: number;
   completion_rate_30d: number;
   completion_rate_all_time: number;

@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 from ..config import SYSTEM_USER_ID
 from ..database import get_db
 from ..models.task import Task
-from ..models.recurring import RecurringItem
+from ..models.habits import Habit
 from ..models.event import CalendarEvent
-from ..services.recurring_scheduler import is_due_on
+from ..services.habits_scheduler import is_due_on
 
 router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 
@@ -45,23 +45,23 @@ def calendar_feed(
             }
         )
 
-    recurring_items = (
-        db.query(RecurringItem)
-        .filter(RecurringItem.user_id == SYSTEM_USER_ID, RecurringItem.is_active == True)
+    habits = (
+        db.query(Habit)
+        .filter(Habit.user_id == SYSTEM_USER_ID, Habit.is_active == True)
         .all()
     )
     cursor = start
     while cursor <= end:
-        for item in recurring_items:
-            if is_due_on(cursor, item):
+        for habit in habits:
+            if is_due_on(cursor, habit):
                 events.append(
                     {
-                        "id": f"recurring-{item.id}-{cursor.isoformat()}",
-                        "title": item.name,
+                        "id": f"habit-{habit.id}-{cursor.isoformat()}",
+                        "title": habit.name,
                         "start": cursor.isoformat(),
                         "allDay": True,
                         "color": "#6366F1",
-                        "extendedProps": {"type": "recurring", "recurringItemId": str(item.id)},
+                        "extendedProps": {"type": "habit", "habitId": str(habit.id)},
                     }
                 )
         cursor += timedelta(days=1)
