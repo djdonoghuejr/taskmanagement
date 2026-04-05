@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://secreterry.onrender.com/api/:path*"
+    }
+  ]
+}
+
