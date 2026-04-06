@@ -16,6 +16,7 @@ import {
 import { Task, TaskActivity, TaskSummary } from "../types";
 import Modal from "./Modal";
 import BlockedCompleteDialog from "./BlockedCompleteDialog";
+import { listProjects } from "../api/projects";
 
 function formatActivityTitle(a: TaskActivity): string {
   if (a.type === "created") return "Created";
@@ -86,10 +87,17 @@ export default function TaskDialog({
 
   const effectiveTask = currentTask || task;
   const projectId = effectiveTask?.project_id || undefined;
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: listProjects,
+    enabled: open,
+  });
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [expectedMinutes, setExpectedMinutes] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
   const [reason, setReason] = useState("");
   const [comment, setComment] = useState("");
   const [completionNotes, setCompletionNotes] = useState("");
@@ -135,6 +143,8 @@ export default function TaskDialog({
     setName(effectiveTask?.name || "");
     setDescription(effectiveTask?.description || "");
     setDueDate(effectiveTask?.due_date || initialDueDate || "");
+    setExpectedMinutes(effectiveTask?.expected_minutes ? String(effectiveTask.expected_minutes) : "");
+    setSelectedProjectId(effectiveTask?.project_id || "");
     setReason("");
     setComment("");
     setCompletionNotes("");
@@ -192,6 +202,8 @@ export default function TaskDialog({
       createTask({
         name,
         description: description || null,
+        project_id: selectedProjectId || null,
+        expected_minutes: expectedMinutes ? Number(expectedMinutes) : null,
         due_date: dueDate || null,
         blocked_by_ids: blockedBy.map((t) => t.id),
         blocking_ids: blocking.map((t) => t.id),
@@ -208,6 +220,8 @@ export default function TaskDialog({
       return updateTask(currentTaskId, {
         name,
         description: description || null,
+        project_id: selectedProjectId || null,
+        expected_minutes: expectedMinutes ? Number(expectedMinutes) : null,
         due_date: dueDate || null,
         blocked_by_ids: blockedBy.map((t) => t.id),
         blocking_ids: blocking.map((t) => t.id),
@@ -359,6 +373,41 @@ export default function TaskDialog({
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
+          </label>
+
+          <label className="text-sm">
+            <span className="st-label">Expected Time</span>
+            <div className="relative">
+              <input
+                type="number"
+                min={1}
+                className="st-input pr-20"
+                value={expectedMinutes}
+                onChange={(event) => setExpectedMinutes(event.target.value)}
+                placeholder="30"
+              />
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[color:var(--st-ink-muted)]">
+                minutes
+              </span>
+            </div>
+            <span className="st-helper mt-2 block">Optional. Used by “Get Something Done” to suggest a task that fits the time you have.</span>
+          </label>
+
+          <label className="text-sm">
+            <span className="st-label">Project</span>
+            <select
+              className="st-select"
+              value={selectedProjectId}
+              onChange={(event) => setSelectedProjectId(event.target.value)}
+            >
+              <option value="">No project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+            <span className="st-helper mt-2 block">Projects are assigned from the Projects tab.</span>
           </label>
 
           <div className="section-card space-y-4">

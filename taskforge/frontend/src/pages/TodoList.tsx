@@ -114,7 +114,10 @@ export default function TodoList() {
                     {task.status}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-[color:var(--st-ink-soft)]">{task.due_date || "No due date"}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[color:var(--st-ink-soft)]">
+                  <p>{task.due_date || "No due date"}</p>
+                  {task.expected_minutes ? <span>{task.expected_minutes} min expected</span> : null}
+                </div>
               </button>
 
               <div className="flex shrink-0 items-center gap-3">

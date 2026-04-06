@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import TodoList from "../pages/TodoList";
-import { Task, TaskActivity } from "../types";
+import { Project, Task, TaskActivity } from "../types";
 
 let tasksStore: Task[] = [];
+let projectsStore: Project[] = [];
 
 const mockListTasks = vi.fn(async () => tasksStore);
 const mockCreateTask = vi.fn(async (payload: Partial<Task>) => {
@@ -14,6 +15,7 @@ const mockCreateTask = vi.fn(async (payload: Partial<Task>) => {
     name: payload.name || "",
     description: payload.description || null,
     project_id: payload.project_id || null,
+    expected_minutes: payload.expected_minutes || null,
     due_date: payload.due_date || null,
     tags: payload.tags || [],
     status: "pending",
@@ -69,6 +71,7 @@ const mockAddTaskComment = vi.fn(async () => ({} as TaskActivity));
 const mockGetTask = vi.fn(async (id: string) => tasksStore.find((t) => t.id === id)!);
 const mockGetTaskDependencies = vi.fn(async () => ({ blocked_by: [], blocking: [] }));
 const mockSearchTasks = vi.fn(async () => []);
+const mockListProjects = vi.fn(async () => projectsStore);
 
 vi.mock("../api/tasks", () => ({
   listTasks: () => mockListTasks(),
@@ -83,6 +86,10 @@ vi.mock("../api/tasks", () => ({
   getTask: (id: string) => mockGetTask(id),
   getTaskDependencies: (id: string) => mockGetTaskDependencies(id),
   searchTasks: () => mockSearchTasks(),
+}));
+
+vi.mock("../api/projects", () => ({
+  listProjects: () => mockListProjects(),
 }));
 
 function renderWithClient() {
@@ -101,6 +108,18 @@ function renderWithClient() {
 
 beforeEach(() => {
   tasksStore = [];
+  projectsStore = [
+    {
+      id: "project-1",
+      user_id: "00000000-0000-0000-0000-000000000001",
+      name: "Ops",
+      color: "#1d6b62",
+      description: "Operations",
+      is_archived: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ];
   mockListTasks.mockClear();
   mockCreateTask.mockClear();
   mockUpdateTask.mockClear();
@@ -113,6 +132,7 @@ beforeEach(() => {
   mockGetTask.mockClear();
   mockGetTaskDependencies.mockClear();
   mockSearchTasks.mockClear();
+  mockListProjects.mockClear();
 });
 
 describe("TodoList", () => {
@@ -121,9 +141,12 @@ describe("TodoList", () => {
 
     fireEvent.click(screen.getByText("Add Task"));
     fireEvent.change(screen.getByPlaceholderText("Task name"), { target: { value: "My Task" } });
+    await screen.findByRole("option", { name: "Ops" });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "project-1" } });
     fireEvent.click(screen.getByText("Save"));
 
     await waitFor(() => expect(mockCreateTask).toHaveBeenCalled());
+    expect(mockCreateTask).toHaveBeenCalledWith(expect.objectContaining({ project_id: "project-1" }));
     await waitFor(() => expect(screen.getByText("My Task")).toBeInTheDocument());
   });
 
@@ -135,6 +158,7 @@ describe("TodoList", () => {
         name: "Original",
         description: null,
         project_id: null,
+        expected_minutes: null,
         due_date: null,
         tags: [],
         status: "pending",

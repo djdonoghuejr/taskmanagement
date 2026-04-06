@@ -23,6 +23,9 @@ export default function TaskCard({ task, onClick }: { task: Task; onClick?: () =
           {task.due_date && (
             <p className="mt-2 text-sm text-[color:var(--st-ink-soft)]">Due {task.due_date}</p>
           )}
+          {task.expected_minutes ? (
+            <p className="mt-1 text-sm text-[color:var(--st-ink-muted)]">{task.expected_minutes} min expected</p>
+          ) : null}
         </div>
         <span className={statusClass}>{task.status}</span>
       </div>

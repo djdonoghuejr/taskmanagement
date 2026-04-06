@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import { Task, TaskActivity, TaskDependencies, TaskSummary } from "../types";
+import { Task, TaskActivity, TaskDependencies, TaskSuggestion, TaskSummary } from "../types";
 
 export function listTasks(params?: {
   status?: string;
@@ -97,4 +97,13 @@ export function searchTasks(params: {
   if (params.exclude_id) qs.set("exclude_id", params.exclude_id);
   if (params.limit) qs.set("limit", String(params.limit));
   return apiFetch<TaskSummary[]>(`/tasks/search?${qs.toString()}`);
+}
+
+export function getSomethingDone(params: { minutes: number; exclude_ids?: string[] }) {
+  const qs = new URLSearchParams();
+  qs.set("minutes", String(params.minutes));
+  for (const id of params.exclude_ids || []) {
+    qs.append("exclude_ids", id);
+  }
+  return apiFetch<TaskSuggestion>(`/tasks/get-something-done?${qs.toString()}`);
 }

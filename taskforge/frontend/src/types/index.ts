@@ -18,6 +18,7 @@ export interface Task {
   project_id?: string | null;
   name: string;
   description?: string | null;
+  expected_minutes?: number | null;
   due_date?: string | null;
   tags: string[];
   status: TaskStatus;
@@ -31,8 +32,15 @@ export interface TaskSummary {
   id: string;
   name: string;
   status: TaskStatus;
+  expected_minutes?: number | null;
   due_date?: string | null;
   project_id?: string | null;
+}
+
+export interface TaskSuggestion {
+  task: Task;
+  selection_mode: "estimated" | "fallback";
+  message: string;
 }
 
 export interface TaskDependencies {

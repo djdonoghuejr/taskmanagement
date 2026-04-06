@@ -30,7 +30,12 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || "Request failed");
+    try {
+      const parsed = JSON.parse(text) as { detail?: string };
+      throw new Error(parsed.detail || text || "Request failed");
+    } catch {
+      throw new Error(text || "Request failed");
+    }
   }
 
   if (res.status === 204) {

@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import GetSomethingDoneDialog from "../components/GetSomethingDoneDialog";
 import Today from "./Today";
 import Upcoming from "./Upcoming";
 import History from "./History";
@@ -13,6 +14,7 @@ function normalizeView(v: string | null): View {
 
 export default function Home() {
   const [params, setParams] = useSearchParams();
+  const [getSomethingDoneOpen, setGetSomethingDoneOpen] = useState(false);
   const view = useMemo(() => normalizeView(params.get("view")), [params]);
 
   const setView = (next: View) => {
@@ -30,31 +32,41 @@ export default function Home() {
           <p className="page-subtitle">Today, upcoming, and history arranged to help you steer the day without friction.</p>
         </div>
 
-        <div className="st-pill-group" role="group" aria-label="Home view filter">
-          <button
-            className={`st-pill-toggle ${view === "today" ? "st-pill-toggle-active" : ""}`}
-            onClick={() => setView("today")}
-          >
-            Today
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="st-button-primary" onClick={() => setGetSomethingDoneOpen(true)}>
+            Get Something Done
           </button>
-          <button
-            className={`st-pill-toggle ${view === "upcoming" ? "st-pill-toggle-active" : ""}`}
-            onClick={() => setView("upcoming")}
-          >
-            Upcoming
-          </button>
-          <button
-            className={`st-pill-toggle ${view === "history" ? "st-pill-toggle-active" : ""}`}
-            onClick={() => setView("history")}
-          >
-            History
-          </button>
+
+          <div className="st-pill-group" role="group" aria-label="Home view filter">
+            <button
+              className={`st-pill-toggle ${view === "today" ? "st-pill-toggle-active" : ""}`}
+              onClick={() => setView("today")}
+            >
+              Today
+            </button>
+            <button
+              className={`st-pill-toggle ${view === "upcoming" ? "st-pill-toggle-active" : ""}`}
+              onClick={() => setView("upcoming")}
+            >
+              Upcoming
+            </button>
+            <button
+              className={`st-pill-toggle ${view === "history" ? "st-pill-toggle-active" : ""}`}
+              onClick={() => setView("history")}
+            >
+              History
+            </button>
+          </div>
         </div>
       </div>
 
       {view === "today" && <Today embedded />}
       {view === "upcoming" && <Upcoming embedded />}
       {view === "history" && <History embedded />}
+      <GetSomethingDoneDialog
+        open={getSomethingDoneOpen}
+        onClose={() => setGetSomethingDoneOpen(false)}
+      />
     </div>
   );
 }

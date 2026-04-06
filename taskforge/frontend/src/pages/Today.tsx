@@ -169,6 +169,11 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
                       <p className="mt-2 text-sm font-medium text-[color:var(--st-ink-muted)]">
                         {task.due_date ? `Due ${task.due_date}` : "No due date"}
                       </p>
+                      {task.expected_minutes ? (
+                        <p className="mt-1 text-sm text-[color:var(--st-ink-muted)]">
+                          {task.expected_minutes} min expected
+                        </p>
+                      ) : null}
                     </div>
                     <div className="shrink-0 text-right">
                       <button
