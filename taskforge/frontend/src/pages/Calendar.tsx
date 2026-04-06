@@ -25,8 +25,14 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-semibold">Calendar</h2>
-      <EventForm onSubmit={(payload) => addEvent.mutate(payload)} />
+      <div>
+        <p className="st-kicker text-[color:var(--st-accent)]">Schedule view</p>
+        <h2 className="page-title mt-2">Calendar</h2>
+        <p className="page-subtitle">A clearer view of tasks, habits, and events over time.</p>
+      </div>
+      <div className="section-card">
+        <EventForm onSubmit={(payload) => addEvent.mutate(payload)} />
+      </div>
       <CalendarView
         events={events}
         onDatesSet={(info) =>

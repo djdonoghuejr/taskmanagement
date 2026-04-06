@@ -25,30 +25,33 @@ export default function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="st-modal-shell">
       <button
-        className="absolute inset-0 bg-black/30"
+        className="st-modal-backdrop"
         aria-label="Close"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-xl">
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+      <div className="st-modal-card">
+        <div className="flex items-center justify-between gap-3 border-b border-[color:var(--st-border)] px-5 py-4 md:px-6">
           <div className="flex items-center gap-2">
             {backButton && (
               <button
-                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm"
+                className="st-button-secondary px-3 py-2 text-sm"
                 onClick={backButton.onClick}
               >
                 {backButton.label}
               </button>
             )}
-            <h3 className="text-lg font-semibold">{title}</h3>
+            <div>
+              <p className="st-kicker text-[color:var(--st-brand)]">SecreTerry</p>
+              <h3 className="mt-1 text-xl font-extrabold tracking-tight">{title}</h3>
+            </div>
           </div>
-          <button className="rounded-md px-2 py-1 text-sm text-slate-600" onClick={onClose}>
+          <button className="rounded-2xl px-3 py-2 text-sm font-semibold text-[color:var(--st-ink-soft)] hover:bg-black/5" onClick={onClose}>
             Close
           </button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="max-h-[calc(92vh-88px)] overflow-y-auto p-5 md:p-6">{children}</div>
       </div>
     </div>
   );

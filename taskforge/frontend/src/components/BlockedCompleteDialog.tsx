@@ -45,13 +45,14 @@ export default function BlockedCompleteDialog({
   return (
     <Modal open={open} title="Task is blocked" onClose={onClose}>
       <div className="grid gap-4">
-        <div>
-          <p className="text-sm text-slate-700">
+        <div className="section-card">
+          <p className="st-kicker text-[color:var(--st-warning)]">Dependency warning</p>
+          <p className="mt-2 text-sm text-[color:var(--st-ink-soft)]">
             <span className="font-semibold">{taskName}</span> is blocked by{" "}
             <span className="font-semibold">{blockerCount}</span> task(s).
           </p>
           {deps && deps.blocked_by.length > 0 && (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[color:var(--st-ink-soft)]">
               {deps.blocked_by.slice(0, 5).map((b) => (
                 <li key={b.id}>{b.name}</li>
               ))}
@@ -61,23 +62,17 @@ export default function BlockedCompleteDialog({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm"
-            onClick={onClose}
-          >
+          <button className="st-button-secondary" onClick={onClose}>
             Cancel
           </button>
-          <button
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm"
-            onClick={() => {
+          <button className="st-button-secondary" onClick={() => {
               onClose();
               onViewBlockers();
-            }}
-          >
+            }}>
             View blockers
           </button>
           <button
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+            className="st-button-primary disabled:opacity-50"
             disabled={removeBlocksAndComplete.isPending}
             onClick={() => removeBlocksAndComplete.mutate()}
           >
@@ -88,4 +83,3 @@ export default function BlockedCompleteDialog({
     </Modal>
   );
 }
-

@@ -36,27 +36,24 @@ export default function Upcoming({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className="space-y-6">
       {!embedded && (
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-semibold">Upcoming</h2>
-            <p className="text-slate-600">Plan your next steps</p>
+            <p className="st-kicker text-[color:var(--st-accent)]">Looking ahead</p>
+            <h2 className="page-title mt-2">Upcoming</h2>
+            <p className="page-subtitle">Plan the next stretch without losing context.</p>
           </div>
         </div>
       )}
 
-      <div className="flex rounded-full border border-slate-300 bg-white p-1 text-sm">
+      <div className="st-pill-group w-fit text-sm">
         <button
-          className={`rounded-full px-3 py-1.5 ${
-            windowDays === 7 ? "bg-slate-900 text-white" : "text-slate-700"
-          }`}
+          className={`st-pill-toggle ${windowDays === 7 ? "st-pill-toggle-active" : ""}`}
           onClick={() => setWindowDays(7)}
         >
           7 days
         </button>
         <button
-          className={`rounded-full px-3 py-1.5 ${
-            windowDays === 30 ? "bg-slate-900 text-white" : "text-slate-700"
-          }`}
+          className={`st-pill-toggle ${windowDays === 30 ? "st-pill-toggle-active" : ""}`}
           onClick={() => setWindowDays(30)}
         >
           30 days
@@ -65,27 +62,27 @@ export default function Upcoming({ embedded = false }: { embedded?: boolean }) {
 
       <div className="grid gap-2">
         {tasks.length === 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+          <div className="st-surface p-4 text-sm text-[color:var(--st-ink-soft)]">
             No upcoming tasks in the next {windowDays} days.
           </div>
         )}
         {tasks.map((task) => (
           <div
             key={task.id}
-            className="rounded-xl border border-slate-200 bg-white p-4"
+            className="section-card"
             data-testid={`upcoming-row-${task.id}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-slate-900">{task.name}</p>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="text-lg font-bold text-[color:var(--st-ink)]">{task.name}</p>
+                <p className="mt-2 text-sm text-[color:var(--st-ink-soft)]">
                   Due {task.due_date || "No due date"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <input
                   type="date"
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="st-input mt-0"
                   value={task.due_date || ""}
                   onChange={(e) => {
                     const next = e.target.value || null;
@@ -94,14 +91,14 @@ export default function Upcoming({ embedded = false }: { embedded?: boolean }) {
                   data-testid={`upcoming-date-${task.id}`}
                 />
                 <button
-                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50"
+                  className="st-button-secondary"
                   onClick={() => reschedule.mutate({ id: task.id, due_date: null })}
                 >
                   Clear
                 </button>
               </div>
             </div>
-            {reschedule.isPending && <p className="mt-2 text-xs text-slate-500">Saving...</p>}
+            {reschedule.isPending && <p className="mt-3 text-xs text-[color:var(--st-ink-muted)]">Saving...</p>}
           </div>
         ))}
       </div>

@@ -15,9 +15,9 @@ export default function HabitRow({
 }) {
   return (
     <div
-      className={`group flex w-full items-center justify-between gap-3 rounded-xl border bg-white p-4 text-left transition ${
-        disabled ? "cursor-not-allowed opacity-70" : "hover:bg-slate-50"
-      } ${checked ? "border-emerald-200" : "border-slate-200"}`}
+      className={`st-surface group flex w-full items-center justify-between gap-4 p-4 text-left transition ${
+        disabled ? "cursor-not-allowed opacity-70" : "hover:-translate-y-0.5 hover:bg-white"
+      } ${checked ? "border-[color:rgba(31,138,98,0.2)]" : ""}`}
     >
       <button
         type="button"
@@ -25,10 +25,13 @@ export default function HabitRow({
         onClick={onOpen}
         className="min-w-0 flex-1"
       >
-        <p className={`font-semibold ${checked ? "text-emerald-900 line-through" : "text-slate-900"}`}>
-          {habit.name}
-        </p>
-        <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className={`text-base font-bold ${checked ? "text-[color:var(--st-success)] line-through" : "text-[color:var(--st-ink)]"}`}>
+            {habit.name}
+          </p>
+          <span className="st-badge st-badge-habit">Habit</span>
+        </div>
+        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[color:var(--st-ink-muted)]">
           {habit.cadence_type}
         </p>
       </button>
@@ -39,11 +42,7 @@ export default function HabitRow({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-lg ${
-          checked
-            ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-            : "border-slate-300 text-slate-500"
-        }`}
+        className={`st-complete-ring h-11 w-11 shrink-0 text-lg ${checked ? "st-complete-ring-success st-celebrate" : "text-[color:var(--st-ink-muted)]"}`}
         aria-pressed={checked}
         aria-label={checked ? "Undo completion" : "Complete"}
       >

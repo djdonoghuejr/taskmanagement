@@ -31,16 +31,29 @@ export default function TodoList() {
   });
 
   const filtered = useMemo(
-    () => tasks.filter((t) => (showCompleted ? true : t.status === "pending")),
+    () => tasks.filter((t) => (showCompleted ? true : t.status !== "completed")),
     [tasks, showCompleted]
+  );
+
+  const counts = useMemo(
+    () => ({
+      total: tasks.length,
+      open: tasks.filter((t) => t.status !== "completed").length,
+      blocked: tasks.filter((t) => t.status === "blocked").length,
+    }),
+    [tasks]
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl font-semibold">Tasks</h2>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="st-kicker text-[color:var(--st-brand)]">Task center</p>
+          <h2 className="page-title mt-2">Tasks</h2>
+          <p className="page-subtitle">Sharper hierarchy, denser scanning, and stronger completion feedback.</p>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 rounded-full border border-[color:var(--st-border)] bg-white/75 px-4 py-2 text-sm text-[color:var(--st-ink-soft)] shadow-sm">
             <input
               type="checkbox"
               checked={showCompleted}
@@ -48,24 +61,37 @@ export default function TodoList() {
             />
             Show Completed
           </label>
-          <button
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white"
-            onClick={() => setCreateOpen(true)}
-          >
-            Add Task
-          </button>
+          <button className="st-button-primary" onClick={() => setCreateOpen(true)}>Add Task</button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="divide-y divide-slate-200">
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="section-card">
+          <p className="st-kicker text-[color:var(--st-brand)]">Open tasks</p>
+          <p className="mt-3 text-3xl font-extrabold">{counts.open}</p>
+          <p className="mt-1 text-sm text-[color:var(--st-ink-soft)]">Everything still in motion.</p>
+        </div>
+        <div className="section-card">
+          <p className="st-kicker text-[color:var(--st-warning)]">Blocked</p>
+          <p className="mt-3 text-3xl font-extrabold">{counts.blocked}</p>
+          <p className="mt-1 text-sm text-[color:var(--st-ink-soft)]">Tasks waiting on other work.</p>
+        </div>
+        <div className="section-card">
+          <p className="st-kicker text-[color:var(--st-accent)]">Total</p>
+          <p className="mt-3 text-3xl font-extrabold">{counts.total}</p>
+          <p className="mt-1 text-sm text-[color:var(--st-ink-soft)]">Your complete task inventory.</p>
+        </div>
+      </div>
+
+      <div className="st-list">
+        <div>
           {filtered.length === 0 && (
-            <div className="p-4 text-sm text-slate-600">No tasks.</div>
+            <div className="p-5 text-sm text-[color:var(--st-ink-soft)]">No tasks.</div>
           )}
           {filtered.map((task) => (
             <div
               key={task.id}
-              className="flex items-center justify-between gap-3 p-3 hover:bg-slate-50"
+              className="st-row st-interactive-row"
               data-testid={`task-row-${task.id}`}
             >
               <button
@@ -74,23 +100,29 @@ export default function TodoList() {
                 onClick={() => setSelectedTask(task)}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate font-medium text-slate-900">{task.name}</p>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                    Recently Added
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                  <p className="truncate text-base font-bold text-[color:var(--st-ink)]">{task.name}</p>
+                  <span className="st-badge st-badge-brand">Recently Added</span>
+                  <span
+                    className={
+                      task.status === "blocked"
+                        ? "st-badge st-badge-warning"
+                        : task.status === "completed"
+                          ? "st-badge st-badge-success"
+                          : "st-badge"
+                    }
+                  >
                     {task.status}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">{task.due_date || "No due date"}</p>
+                <p className="mt-2 text-sm text-[color:var(--st-ink-soft)]">{task.due_date || "No due date"}</p>
               </button>
 
               <div className="flex shrink-0 items-center gap-3">
-                {task.status === "pending" && (
+                {task.status !== "completed" && (
                   <div className="text-right">
                     <button
                       type="button"
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 hover:bg-slate-50"
+                      className="st-complete-ring h-11 w-11"
                       onClick={() => {
                         if (task.status === "blocked") {
                           setBlockedCompleteTarget(task);
@@ -100,11 +132,11 @@ export default function TodoList() {
                       }}
                       aria-label="Complete task"
                     >
-                      ✓
+                      <span className="text-lg font-bold text-[color:var(--st-brand-strong)]">✓</span>
                     </button>
                     <button
                       type="button"
-                      className="mt-1 block text-xs text-slate-600 hover:text-slate-900"
+                      className="mt-2 block text-xs font-semibold text-[color:var(--st-ink-soft)] hover:text-[color:var(--st-ink)]"
                       onClick={() => {
                         setFocusTaskCompletionNotes(true);
                         setSelectedTask(task);
@@ -116,8 +148,8 @@ export default function TodoList() {
                 )}
                 <button
                   type="button"
-                  className="rounded-md border border-slate-300 px-3 py-1 text-xs"
-                  onClick={(e) => {
+                  className="st-button-secondary px-3 py-2 text-xs"
+                  onClick={() => {
                     duplicate.mutate(task.id);
                   }}
                   data-testid={`task-duplicate-${task.id}`}
@@ -126,8 +158,8 @@ export default function TodoList() {
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border border-slate-300 px-3 py-1 text-xs"
-                  onClick={(e) => {
+                  className="st-button-secondary px-3 py-2 text-xs"
+                  onClick={() => {
                     remove.mutate(task.id);
                   }}
                   data-testid={`task-delete-${task.id}`}

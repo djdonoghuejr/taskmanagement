@@ -311,29 +311,29 @@ export default function TaskDialog({
           : undefined
       }
     >
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         {isEdit && effectiveTask && (
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+              className={`st-badge ${
                 effectiveTask.status === "blocked"
-                  ? "bg-amber-100 text-amber-900"
-                  : "bg-slate-100 text-slate-700"
+                  ? "st-badge-warning"
+                  : effectiveTask.status === "completed"
+                    ? "st-badge-success"
+                    : ""
               }`}
             >
               Status: {effectiveTask.status}
             </span>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-              Assigned: You
-            </span>
+            <span className="st-badge">Assigned: You</span>
           </div>
         )}
 
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           <label className="text-sm">
-            <span className="text-slate-600">Name</span>
+            <span className="st-label">Name</span>
             <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              className="st-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Task name"
@@ -341,9 +341,9 @@ export default function TaskDialog({
           </label>
 
           <label className="text-sm">
-            <span className="text-slate-600">Description</span>
+            <span className="st-label">Description</span>
             <textarea
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              className="st-textarea"
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -352,32 +352,31 @@ export default function TaskDialog({
           </label>
 
           <label className="text-sm">
-            <span className="text-slate-600">Due Date</span>
+            <span className="st-label">Due Date</span>
             <input
               type="date"
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              className="st-input"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
           </label>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <div className="section-card space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-slate-800">Dependencies</p>
-              <div className="flex rounded-full border border-slate-300 bg-white p-1 text-xs">
+              <div>
+                <p className="st-kicker text-[color:var(--st-brand)]">Links</p>
+                <p className="mt-2 text-sm font-bold text-[color:var(--st-ink)]">Dependencies</p>
+              </div>
+              <div className="st-pill-group text-xs">
                 <button
-                  className={`rounded-full px-3 py-1 ${
-                    depScope === "all" ? "bg-slate-900 text-white" : "text-slate-700"
-                  }`}
+                  className={`st-pill-toggle px-3 py-1.5 ${depScope === "all" ? "st-pill-toggle-active" : ""}`}
                   onClick={() => setDepScope("all")}
                   type="button"
                 >
                   All tasks
                 </button>
                 <button
-                  className={`rounded-full px-3 py-1 ${
-                    depScope === "project" ? "bg-slate-900 text-white" : "text-slate-700"
-                  } ${canUseProjectScope ? "" : "opacity-50"}`}
+                  className={`st-pill-toggle px-3 py-1.5 ${depScope === "project" ? "st-pill-toggle-active" : ""} ${canUseProjectScope ? "" : "opacity-50"}`}
                   onClick={() => canUseProjectScope && setDepScope("project")}
                   type="button"
                   disabled={!canUseProjectScope}
@@ -390,25 +389,23 @@ export default function TaskDialog({
 
             <div className="mt-3 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Blocked by
-                </p>
+                <p className="st-kicker">Blocked by</p>
                 <div className="space-y-2">
                   {blockedBy.length === 0 && (
-                    <p className="text-sm text-slate-600">No blockers.</p>
+                    <p className="text-sm text-[color:var(--st-ink-soft)]">No blockers.</p>
                   )}
                   {blockedBy.map((t) => (
-                    <div key={t.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2">
+                    <div key={t.id} className="flex items-center justify-between gap-2 rounded-2xl border border-[color:var(--st-border)] bg-white px-3 py-3">
                       <button
                         type="button"
-                        className="min-w-0 flex-1 truncate text-left text-sm font-medium text-slate-900 hover:underline"
+                        className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-[color:var(--st-ink)] hover:underline"
                         onClick={() => openTaskId(t.id)}
                       >
                         {t.name}
                       </button>
                       <button
                         type="button"
-                        className="rounded-md border border-slate-300 px-2 py-1 text-xs"
+                        className="st-button-secondary px-2.5 py-1.5 text-xs"
                         onClick={() => {
                           setBlockedBy((prev) => prev.filter((x) => x.id !== t.id));
                           setDepsDirty(true);
@@ -422,13 +419,13 @@ export default function TaskDialog({
 
                 <div className="relative">
                   <input
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="st-input mt-0"
                     value={blockedByQuery}
                     onChange={(e) => setBlockedByQuery(e.target.value)}
                     placeholder="Search tasks…"
                   />
                   {blockedByQuery.trim() && (blockedByResults.data?.length || 0) > 0 && (
-                    <div className="absolute z-10 mt-1 w-full rounded-md border border-slate-200 bg-white shadow">
+                    <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-2xl border border-[color:var(--st-border)] bg-white shadow-xl">
                       {blockedByResults.data!
                         .filter((r) => !blockedBy.some((b) => b.id === r.id))
                         .slice(0, 10)
@@ -436,12 +433,12 @@ export default function TaskDialog({
                           <button
                             key={r.id}
                             type="button"
-                            className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                            className="block w-full px-3 py-3 text-left text-sm hover:bg-[color:var(--st-bg-subtle)]"
                             onClick={() => addBlockedBy(r)}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <span className="truncate">{r.name}</span>
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                              <span className={r.status === "blocked" ? "st-badge st-badge-warning" : "st-badge"}>
                                 {r.status}
                               </span>
                             </div>
@@ -453,25 +450,23 @@ export default function TaskDialog({
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Blocking
-                </p>
+                <p className="st-kicker">Blocking</p>
                 <div className="space-y-2">
                   {blocking.length === 0 && (
-                    <p className="text-sm text-slate-600">Not blocking anything.</p>
+                    <p className="text-sm text-[color:var(--st-ink-soft)]">Not blocking anything.</p>
                   )}
                   {blocking.map((t) => (
-                    <div key={t.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2">
+                    <div key={t.id} className="flex items-center justify-between gap-2 rounded-2xl border border-[color:var(--st-border)] bg-white px-3 py-3">
                       <button
                         type="button"
-                        className="min-w-0 flex-1 truncate text-left text-sm font-medium text-slate-900 hover:underline"
+                        className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-[color:var(--st-ink)] hover:underline"
                         onClick={() => openTaskId(t.id)}
                       >
                         {t.name}
                       </button>
                       <button
                         type="button"
-                        className="rounded-md border border-slate-300 px-2 py-1 text-xs"
+                        className="st-button-secondary px-2.5 py-1.5 text-xs"
                         onClick={() => {
                           setBlocking((prev) => prev.filter((x) => x.id !== t.id));
                           setDepsDirty(true);
@@ -485,13 +480,13 @@ export default function TaskDialog({
 
                 <div className="relative">
                   <input
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="st-input mt-0"
                     value={blockingQuery}
                     onChange={(e) => setBlockingQuery(e.target.value)}
                     placeholder="Search tasks…"
                   />
                   {blockingQuery.trim() && (blockingResults.data?.length || 0) > 0 && (
-                    <div className="absolute z-10 mt-1 w-full rounded-md border border-slate-200 bg-white shadow">
+                    <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-2xl border border-[color:var(--st-border)] bg-white shadow-xl">
                       {blockingResults.data!
                         .filter((r) => !blocking.some((b) => b.id === r.id))
                         .slice(0, 10)
@@ -499,12 +494,12 @@ export default function TaskDialog({
                           <button
                             key={r.id}
                             type="button"
-                            className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                            className="block w-full px-3 py-3 text-left text-sm hover:bg-[color:var(--st-bg-subtle)]"
                             onClick={() => addBlocking(r)}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <span className="truncate">{r.name}</span>
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                              <span className={r.status === "blocked" ? "st-badge st-badge-warning" : "st-badge"}>
                                 {r.status}
                               </span>
                             </div>
@@ -519,9 +514,9 @@ export default function TaskDialog({
 
           {isEdit && (
             <label className="text-sm">
-              <span className="text-slate-600">Comment / Reason (optional)</span>
+              <span className="st-label">Comment / Reason (optional)</span>
               <textarea
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                className="st-textarea"
                 rows={2}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -533,7 +528,7 @@ export default function TaskDialog({
           <div className="flex flex-wrap gap-2">
             {!isEdit && (
               <button
-                className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                className="st-button-primary disabled:opacity-50"
                 disabled={!isValid || create.isPending}
                 onClick={() => create.mutate()}
               >
@@ -544,7 +539,7 @@ export default function TaskDialog({
             {isEdit && (
               <>
                 <button
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                  className="st-button-primary disabled:opacity-50"
                   disabled={!isValid || save.isPending}
                   onClick={() => save.mutate()}
                 >
@@ -552,7 +547,7 @@ export default function TaskDialog({
                 </button>
                 {effectiveTask?.status !== "completed" ? (
                   <button
-                    className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm"
+                    className="st-button-secondary"
                     onClick={() => {
                       if (effectiveTask?.status === "blocked") {
                         setBlockedConfirmOpen(true);
@@ -566,7 +561,7 @@ export default function TaskDialog({
                   </button>
                 ) : (
                   <button
-                    className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm"
+                    className="st-button-secondary"
                     onClick={() => reopen.mutate()}
                     disabled={reopen.isPending}
                   >
@@ -574,14 +569,14 @@ export default function TaskDialog({
                   </button>
                 )}
                 <button
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm"
+                  className="st-button-secondary"
                   onClick={() => duplicate.mutate()}
                   disabled={duplicate.isPending}
                 >
                   Duplicate
                 </button>
                 <button
-                  className="rounded-md border border-rose-300 bg-rose-50 px-4 py-2 text-sm text-rose-800"
+                  className="st-button-danger"
                   onClick={() => remove.mutate()}
                   disabled={remove.isPending}
                 >
@@ -595,10 +590,11 @@ export default function TaskDialog({
         {isEdit && (
           <>
             {effectiveTask?.status !== "completed" && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-sm font-semibold text-slate-800">Completion notes (optional)</p>
+              <div className="section-card">
+                <p className="st-kicker text-[color:var(--st-success)]">Completion</p>
+                <p className="mt-2 text-sm font-bold text-[color:var(--st-ink)]">Completion notes (optional)</p>
                 <textarea
-                  className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                  className="st-textarea mt-3 bg-white"
                   rows={2}
                   ref={completionNotesRef}
                   value={completionNotes}
@@ -608,21 +604,22 @@ export default function TaskDialog({
               </div>
             )}
 
-            <div className="rounded-xl border border-slate-200 bg-white p-3">
-              <p className="text-sm font-semibold text-slate-800">Activity</p>
+            <div className="section-card">
+              <p className="st-kicker text-[color:var(--st-accent)]">Activity</p>
+              <p className="mt-2 text-sm font-bold text-[color:var(--st-ink)]">Task history</p>
 
               <div className="mt-3 space-y-2">
-                {activity.length === 0 && <p className="text-sm text-slate-600">No activity yet.</p>}
+                {activity.length === 0 && <p className="text-sm text-[color:var(--st-ink-soft)]">No activity yet.</p>}
                 {activity.map((a) => {
                   const meta = formatMeta(a);
                   return (
-                    <div key={a.id} className="rounded-lg border border-slate-200 p-3">
+                    <div key={a.id} className="rounded-2xl border border-[color:var(--st-border)] bg-white p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-900">{formatActivityTitle(a)}</p>
-                        <p className="text-xs text-slate-500">{new Date(a.created_at).toLocaleString()}</p>
+                        <p className="text-sm font-semibold text-[color:var(--st-ink)]">{formatActivityTitle(a)}</p>
+                        <p className="text-xs text-[color:var(--st-ink-muted)]">{new Date(a.created_at).toLocaleString()}</p>
                       </div>
-                      {meta && <p className="mt-1 text-xs text-slate-600">{meta}</p>}
-                      {a.message && <p className="mt-2 text-sm text-slate-800">{a.message}</p>}
+                      {meta && <p className="mt-1 text-xs text-[color:var(--st-ink-soft)]">{meta}</p>}
+                      {a.message && <p className="mt-2 text-sm text-[color:var(--st-ink)]">{a.message}</p>}
                     </div>
                   );
                 })}
@@ -630,7 +627,7 @@ export default function TaskDialog({
 
               <div className="mt-3 grid gap-2">
                 <textarea
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="st-textarea"
                   rows={2}
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
@@ -638,7 +635,7 @@ export default function TaskDialog({
                 />
                 <div className="flex justify-end">
                   <button
-                    className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                    className="st-button-primary disabled:opacity-50"
                     disabled={!comment.trim() || addCommentMut.isPending}
                     onClick={() => addCommentMut.mutate()}
                   >

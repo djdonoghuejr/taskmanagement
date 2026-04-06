@@ -1,27 +1,30 @@
 import { Task } from "../types";
 
 export default function TaskCard({ task, onClick }: { task: Task; onClick?: () => void }) {
+  const statusClass =
+    task.status === "completed"
+      ? "st-badge st-badge-success"
+      : task.status === "blocked"
+        ? "st-badge st-badge-warning"
+        : "st-badge";
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left hover:bg-slate-50"
+      className="st-surface w-full p-4 text-left transition hover:-translate-y-0.5 hover:bg-white"
     >
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-medium text-slate-900">{task.name}</p>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-              Recently Added
-            </span>
+            <p className="text-base font-bold text-[color:var(--st-ink)]">{task.name}</p>
+            <span className="st-badge st-badge-brand">Recently Added</span>
           </div>
           {task.due_date && (
-            <p className="text-xs text-slate-500">Due {task.due_date}</p>
+            <p className="mt-2 text-sm text-[color:var(--st-ink-soft)]">Due {task.due_date}</p>
           )}
         </div>
-        <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
-          {task.status}
-        </span>
+        <span className={statusClass}>{task.status}</span>
       </div>
     </button>
   );

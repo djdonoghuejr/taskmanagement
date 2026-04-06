@@ -54,24 +54,28 @@ export default function HabitsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold">Habits</h2>
-          <p className="text-slate-600">Daily rhythms, calmly executed.</p>
+          <p className="st-kicker text-[color:var(--st-habit)]">Rhythm builder</p>
+          <h2 className="page-title mt-2">Habits</h2>
+          <p className="page-subtitle">Recurring commitments with a cleaner cadence, stronger status cues, and better daily momentum.</p>
         </div>
         <button
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white"
+          className="st-button-primary"
           onClick={() => setCreateOpen(true)}
         >
           Add Habit
         </button>
       </div>
 
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold">Due Today</h3>
+      <section className="section-card space-y-4">
+        <div>
+          <p className="st-kicker text-[color:var(--st-habit)]">Today&apos;s rhythm</p>
+          <h3 className="section-title mt-2">Due Today</h3>
+        </div>
         <div className="grid gap-2">
           {grouped.dueToday.length === 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+            <div className="st-surface p-4 text-sm text-[color:var(--st-ink-soft)]">
               No habits due today.
             </div>
           )}
@@ -88,11 +92,14 @@ export default function HabitsPage() {
       </section>
 
       {(["daily", "weekly", "monthly", "custom"] as const).map((group) => (
-        <section key={group} className="space-y-3">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{group}</h3>
+        <section key={group} className="section-card space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="section-title capitalize">{group}</h3>
+            <span className="st-badge st-badge-habit">{grouped[group].length} items</span>
+          </div>
           <div className="grid gap-2">
             {grouped[group].length === 0 && (
-              <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+              <div className="st-surface p-4 text-sm text-[color:var(--st-ink-soft)]">
                 No habits.
               </div>
             )}
@@ -127,4 +134,3 @@ export default function HabitsPage() {
     </div>
   );
 }
-
