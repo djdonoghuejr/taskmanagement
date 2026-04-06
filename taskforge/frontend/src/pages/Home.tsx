@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import GetSomethingDoneDialog from "../components/GetSomethingDoneDialog";
 import Today from "./Today";
 import Upcoming from "./Upcoming";
 import History from "./History";
@@ -13,6 +14,7 @@ function normalizeView(v: string | null): View {
 
 export default function Home() {
   const [params, setParams] = useSearchParams();
+  const [getSomethingDoneOpen, setGetSomethingDoneOpen] = useState(false);
   const view = useMemo(() => normalizeView(params.get("view")), [params]);
 
   const setView = (next: View) => {
@@ -23,47 +25,48 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-semibold">Home</h2>
-          <p className="text-slate-600">Today, upcoming, and history - one place.</p>
+          <p className="st-kicker text-[color:var(--st-brand)]">SecreTerry HQ</p>
+          <h2 className="page-title mt-2">Everything in motion, one calm workspace.</h2>
+          <p className="page-subtitle">Today, upcoming, and history arranged to help you steer the day without friction.</p>
         </div>
 
-        <div
-          className="flex rounded-full border border-slate-300 bg-white p-1 text-sm"
-          role="group"
-          aria-label="Home view filter"
-        >
-          <button
-            className={`rounded-full px-3 py-1.5 ${
-              view === "today" ? "bg-slate-900 text-white" : "text-slate-700"
-            }`}
-            onClick={() => setView("today")}
-          >
-            Today
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="st-button-primary" onClick={() => setGetSomethingDoneOpen(true)}>
+            Get Something Done
           </button>
-          <button
-            className={`rounded-full px-3 py-1.5 ${
-              view === "upcoming" ? "bg-slate-900 text-white" : "text-slate-700"
-            }`}
-            onClick={() => setView("upcoming")}
-          >
-            Upcoming
-          </button>
-          <button
-            className={`rounded-full px-3 py-1.5 ${
-              view === "history" ? "bg-slate-900 text-white" : "text-slate-700"
-            }`}
-            onClick={() => setView("history")}
-          >
-            History
-          </button>
+
+          <div className="st-pill-group" role="group" aria-label="Home view filter">
+            <button
+              className={`st-pill-toggle ${view === "today" ? "st-pill-toggle-active" : ""}`}
+              onClick={() => setView("today")}
+            >
+              Today
+            </button>
+            <button
+              className={`st-pill-toggle ${view === "upcoming" ? "st-pill-toggle-active" : ""}`}
+              onClick={() => setView("upcoming")}
+            >
+              Upcoming
+            </button>
+            <button
+              className={`st-pill-toggle ${view === "history" ? "st-pill-toggle-active" : ""}`}
+              onClick={() => setView("history")}
+            >
+              History
+            </button>
+          </div>
         </div>
       </div>
 
       {view === "today" && <Today embedded />}
       {view === "upcoming" && <Upcoming embedded />}
       {view === "history" && <History embedded />}
+      <GetSomethingDoneDialog
+        open={getSomethingDoneOpen}
+        onClose={() => setGetSomethingDoneOpen(false)}
+      />
     </div>
   );
 }

@@ -29,3 +29,22 @@ def test_tags_soft_delete(client):
 
     tags = client.get("/api/tags").json()
     assert all(t["id"] != tag["id"] for t in tags)
+
+
+def test_cannot_assign_task_to_other_users_project(client, anon_client):
+    anon_client.get("/api/auth/csrf")
+    csrf = anon_client.cookies.get("tf_csrf")
+    anon_client.headers.update({"X-CSRF-Token": csrf})
+    anon_client.post("/api/auth/register", json={"email": "other@example.com", "password": "password123"})
+
+    other_project = anon_client.post(
+        "/api/projects",
+        json={"name": "Other", "color": "#222222", "description": "Other user project"},
+    ).json()
+
+    create_resp = client.post(
+        "/api/tasks",
+        json={"name": "Should fail", "project_id": other_project["id"]},
+    )
+    assert create_resp.status_code == 400
+    assert create_resp.json()["detail"] == "Project not found"

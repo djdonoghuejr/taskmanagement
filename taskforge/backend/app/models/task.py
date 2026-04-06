@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Text, Date, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, String, Text, Date, DateTime, Enum, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.sql import func
 
@@ -14,6 +14,7 @@ class Task(Base):
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
+    expected_minutes = Column(Integer, nullable=True)
     due_date = Column(Date, nullable=True)
     tags = Column(ARRAY(String), nullable=False, default=list)
     status = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.pending)

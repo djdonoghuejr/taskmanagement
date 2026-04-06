@@ -10,7 +10,7 @@ export default function CalendarView({
   onDatesSet: (arg: { startStr: string; endStr: string }) => void;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <div className="section-card">
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"

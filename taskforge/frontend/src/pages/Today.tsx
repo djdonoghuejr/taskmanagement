@@ -30,12 +30,12 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks", "today", today],
     queryFn: () =>
-      listTasks({ status: "pending", due_after: today, due_before: today, order_by: "due_date" }),
+      listTasks({ due_after: today, due_before: today, order_by: "due_date" }),
   });
 
   const { data: overdueTasks = [] } = useQuery({
     queryKey: ["tasks", "overdue", today],
-    queryFn: () => listTasks({ status: "pending", due_before: today, order_by: "due_date" }),
+    queryFn: () => listTasks({ due_before: today, order_by: "due_date" }),
   });
 
   const { data: habits = [] } = useQuery({
@@ -63,7 +63,9 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
       | { kind: "habit"; id: string; habit: (typeof dueTodayHabits)[number] }
     > = [];
 
-    for (const task of tasks) items.push({ kind: "task", id: task.id, task });
+    for (const task of tasks.filter((entry) => entry.status !== "completed")) {
+      items.push({ kind: "task", id: task.id, task });
+    }
     for (const habit of dueTodayHabits) items.push({ kind: "habit", id: habit.id, habit });
 
     items.sort((a, b) => {
@@ -88,30 +90,32 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
 
   const overdueCount = useMemo(() => {
     const todayDate = new Date(today);
-    return overdueTasks.filter((t) => t.due_date && new Date(t.due_date) < todayDate).length;
+    return overdueTasks.filter((t) => t.status !== "completed" && t.due_date && new Date(t.due_date) < todayDate).length;
   }, [overdueTasks, today]);
 
   return (
     <div className="space-y-6">
       {!embedded && (
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-semibold">Today</h2>
-            <p className="text-slate-600">{new Date().toLocaleDateString()}</p>
+            <p className="st-kicker text-[color:var(--st-brand)]">Daily focus</p>
+            <h2 className="page-title mt-2">Today</h2>
+            <p className="page-subtitle">{new Date().toLocaleDateString()}</p>
           </div>
         </div>
       )}
 
       {overdueCount > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+        <div className="section-card border-[color:rgba(183,121,31,0.18)] bg-[color:var(--st-warning-soft)] text-[color:var(--st-warning)]">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-semibold">Overdue</p>
-              <p className="text-sm">{overdueCount} task(s) are overdue.</p>
+              <p className="st-kicker text-[color:var(--st-warning)]">Needs attention</p>
+              <p className="mt-2 text-xl font-bold">Overdue</p>
+              <p className="mt-1 text-sm">{overdueCount} task(s) are overdue.</p>
             </div>
             <Link
               to="/?view=upcoming"
-              className="rounded-full bg-amber-900 px-4 py-2 text-sm text-white"
+              className="st-button-secondary border-[color:rgba(183,121,31,0.24)] bg-white/80 text-[color:var(--st-warning)]"
             >
               Review
             </Link>
@@ -119,49 +123,62 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
         </div>
       )}
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold">Due Today</h3>
+      <section className="section-card space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="st-kicker text-[color:var(--st-brand)]">Action board</p>
+            <h3 className="section-title mt-2">Due Today</h3>
+            <p className="section-copy mt-1">Tasks first, habits alongside them, all easy to scan and act on.</p>
+          </div>
           <button
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white"
+            className="st-button-primary"
             onClick={() => setCreateTaskOpen(true)}
           >
             Add Task
           </button>
         </div>
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           {dueItems.length === 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+            <div className="st-surface p-5 text-sm text-[color:var(--st-ink-soft)]">
               Nothing due today.
             </div>
           )}
           {dueItems.map((item) => {
             if (item.kind === "task") {
               const task = item.task;
+              const statusBadge =
+                task.status === "blocked" ? "st-badge st-badge-warning" : "st-badge";
               return (
                 <button
                   key={task.id}
-                  className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50"
+                  className="st-surface st-interactive-row w-full p-0 text-left"
                   onClick={() => {
                     setSelectedTask(task);
                   }}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
+                  <div className="st-row">
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-slate-900">{task.name}</p>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                          Recently Added
-                        </span>
+                        <p className="text-base font-bold text-[color:var(--st-ink)]">{task.name}</p>
+                        <span className="st-badge st-badge-brand">Recently Added</span>
+                        <span className={statusBadge}>{task.status}</span>
                       </div>
                       {task.description && (
-                        <p className="mt-1 text-sm text-slate-600">{task.description}</p>
+                        <p className="mt-2 text-sm leading-6 text-[color:var(--st-ink-soft)]">{task.description}</p>
                       )}
+                      <p className="mt-2 text-sm font-medium text-[color:var(--st-ink-muted)]">
+                        {task.due_date ? `Due ${task.due_date}` : "No due date"}
+                      </p>
+                      {task.expected_minutes ? (
+                        <p className="mt-1 text-sm text-[color:var(--st-ink-muted)]">
+                          {task.expected_minutes} min expected
+                        </p>
+                      ) : null}
                     </div>
                     <div className="shrink-0 text-right">
                       <button
                         type="button"
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 hover:bg-slate-50"
+                        className={`st-complete-ring h-12 w-12 ${task.status === "completed" ? "st-complete-ring-success st-celebrate" : ""}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (task.status === "blocked") {
@@ -172,11 +189,11 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
                         }}
                         aria-label="Complete task"
                       >
-                        <CheckIcon className="h-6 w-6 text-slate-700" />
+                        <CheckIcon className="h-6 w-6 text-[color:var(--st-brand-strong)]" />
                       </button>
                       <button
                         type="button"
-                        className="mt-1 block text-xs text-slate-600 hover:text-slate-900"
+                        className="mt-2 block text-xs font-semibold text-[color:var(--st-ink-soft)] hover:text-[color:var(--st-ink)]"
                         onClick={(e) => {
                           e.stopPropagation();
                           setFocusTaskCompletionNotes(true);
@@ -196,26 +213,24 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
             return (
               <button
                 key={habit.id}
-                className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50"
+                className="st-surface st-interactive-row w-full p-0 text-left"
                 onClick={() => {
                   setSelectedHabit(habit);
                 }}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
+                <div className="st-row">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-slate-900">{habit.name}</p>
-                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">
-                        Habit
-                      </span>
+                      <p className="text-base font-bold text-[color:var(--st-ink)]">{habit.name}</p>
+                      <span className="st-badge st-badge-habit">Habit</span>
                     </div>
-                    <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
+                    <p className="mt-2 text-sm font-medium text-[color:var(--st-ink-muted)]">
                       {habit.cadence_type}
                     </p>
                   </div>
                   <span
-                    className={`inline-flex h-11 w-11 items-center justify-center rounded-full border ${
-                      checked ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-slate-300"
+                    className={`st-complete-ring h-12 w-12 ${checked ? "st-complete-ring-success st-celebrate" : ""} ${
+                      checked ? "" : ""
                     }`}
                   >
                     <CheckIcon className="h-6 w-6" />

@@ -8,9 +8,10 @@ export default function MetricsCard({
   metrics: HabitMetrics;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-      <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600">
+    <div className="section-card">
+      <p className="st-kicker text-[color:var(--st-habit)]">Metrics</p>
+      <h3 className="mt-2 text-sm font-bold text-[color:var(--st-ink)]">{title}</h3>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-[color:var(--st-ink-soft)]">
         <div>7d: {metrics.completion_rate_7d}%</div>
         <div>30d: {metrics.completion_rate_30d}%</div>
         <div>Current: {metrics.current_streak}</div>

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, date, time, timedelta
+import random
 from typing import List, Optional
 from uuid import UUID
 
@@ -14,8 +15,9 @@ from ..models.task import Task
 from ..models.task_activity import TaskActivity
 from ..models.task_dependency import TaskDependency
 from ..models.enums import TaskStatus
+from ..models.project import Project
 from ..models.user import User
-from ..schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskComplete
+from ..schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskComplete, TaskSuggestionRead
 from ..schemas.task_activity import TaskActivityRead, TaskActivityCommentCreate
 from ..schemas.task_dependency import TaskDependenciesRead, TaskSummary
 
@@ -85,6 +87,23 @@ def _validate_dependency_candidates(db: Session, *, user_id: UUID, ids: set[UUID
     if completed:
         raise HTTPException(status_code=400, detail="Cannot depend on completed tasks")
     return found
+
+
+def _validate_project_id(db: Session, *, user_id: UUID, project_id: Optional[UUID]) -> Optional[UUID]:
+    if project_id is None:
+        return None
+    project = (
+        db.query(Project)
+        .filter(Project.id == project_id, Project.user_id == user_id, Project.is_archived == False)
+        .first()
+    )
+    if not project:
+        raise HTTPException(status_code=400, detail="Project not found")
+    return project_id
+
+
+def _incomplete_task_query(db: Session, *, user_id: UUID):
+    return db.query(Task).filter(Task.user_id == user_id, Task.status != TaskStatus.completed)
 
 
 def _has_path(db: Session, start_id: UUID, target_id: UUID) -> bool:
@@ -278,13 +297,49 @@ def list_tasks(
     return query.all()
 
 
+@router.get("/get-something-done", response_model=TaskSuggestionRead)
+def get_something_done(
+    minutes: int = Query(..., ge=1),
+    exclude_ids: Optional[List[UUID]] = Query(None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    excluded = set(exclude_ids or [])
+    base_query = _incomplete_task_query(db, user_id=user.id)
+    if excluded:
+        base_query = base_query.filter(~Task.id.in_(list(excluded)))
+
+    estimated_candidates = (
+        base_query.filter(Task.expected_minutes.isnot(None), Task.expected_minutes <= minutes).all()
+    )
+    if estimated_candidates:
+        task = random.choice(estimated_candidates)
+        return TaskSuggestionRead(
+            task=task,
+            selection_mode="estimated",
+            message=f'You can knock out "{task.name}" in about {task.expected_minutes} minutes.',
+        )
+
+    fallback_candidates = base_query.all()
+    if not fallback_candidates:
+        raise HTTPException(status_code=404, detail="No matching tasks found")
+
+    task = random.choice(fallback_candidates)
+    return TaskSuggestionRead(
+        task=task,
+        selection_mode="fallback",
+        message=f'Get started on "{task.name}".',
+    )
+
+
 @router.post("", response_model=TaskRead)
 def create_task(payload: TaskCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     task = Task(
         user_id=user.id,
         name=payload.name,
         description=payload.description,
-        project_id=payload.project_id,
+        project_id=_validate_project_id(db, user_id=user.id, project_id=payload.project_id),
+        expected_minutes=payload.expected_minutes,
         due_date=payload.due_date,
         tags=payload.tags or [],
     )
@@ -362,13 +417,17 @@ def update_task(task_id: UUID, payload: TaskUpdate, user: User = Depends(get_cur
 
     if "due_date" in data:
         task.due_date = data["due_date"]
+    if "project_id" in data:
+        task.project_id = _validate_project_id(db, user_id=user.id, project_id=data["project_id"])
+    if "expected_minutes" in data:
+        task.expected_minutes = data["expected_minutes"]
     if "status" in data:
         # Status is auto-managed except for completed, which is allowed for backfills/tests.
         if data["status"] == TaskStatus.completed:
             task.status = TaskStatus.completed
         # ignore pending/blocked from clients
     for field, value in data.items():
-        if field in {"due_date", "status"}:
+        if field in {"due_date", "status", "project_id", "expected_minutes"}:
             continue
         setattr(task, field, value)
 
@@ -510,6 +569,7 @@ def duplicate_task(task_id: UUID, user: User = Depends(get_current_user), db: Se
         project_id=task.project_id,
         name=task.name,
         description=task.description,
+        expected_minutes=task.expected_minutes,
         due_date=task.due_date,
         tags=list(task.tags or []),
         status=TaskStatus.pending,

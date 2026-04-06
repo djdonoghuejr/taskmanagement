@@ -131,12 +131,12 @@ export default function HabitDialog({
 
   return (
     <Modal open={open} title={title} onClose={onClose}>
-      <div className="grid gap-4">
-        <div className="grid gap-3">
+      <div className="grid gap-5">
+        <div className="grid gap-4">
           <label className="text-sm">
-            <span className="text-slate-600">Name</span>
+            <span className="st-label">Name</span>
             <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              className="st-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Habit name"
@@ -144,9 +144,9 @@ export default function HabitDialog({
           </label>
 
           <label className="text-sm">
-            <span className="text-slate-600">Description</span>
+            <span className="st-label">Description</span>
             <textarea
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              className="st-textarea"
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -155,9 +155,9 @@ export default function HabitDialog({
           </label>
 
           <label className="text-sm">
-            <span className="text-slate-600">Cadence</span>
+            <span className="st-label">Cadence</span>
             <select
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              className="st-select"
               value={cadenceType}
               onChange={(e) => setCadenceType(e.target.value as CadenceType)}
             >
@@ -169,8 +169,9 @@ export default function HabitDialog({
           </label>
 
           {cadenceType === "weekly" && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm font-semibold text-slate-800">Days of week</p>
+            <div className="section-card">
+              <p className="st-kicker text-[color:var(--st-habit)]">Weekly cadence</p>
+              <p className="mt-2 text-sm font-bold text-[color:var(--st-ink)]">Days of week</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {WEEKDAYS.map((d) => {
                   const checked = weeklyDays.includes(d.value);
@@ -178,10 +179,10 @@ export default function HabitDialog({
                     <button
                       key={d.value}
                       type="button"
-                      className={`rounded-full border px-3 py-1 text-sm ${
+                      className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${
                         checked
-                          ? "border-slate-900 bg-slate-900 text-white"
-                          : "border-slate-300 bg-white text-slate-700"
+                          ? "border-[color:var(--st-habit)] bg-[color:var(--st-habit)] text-white"
+                          : "border-[color:var(--st-border)] bg-white text-[color:var(--st-ink-soft)]"
                       }`}
                       onClick={() => {
                         setWeeklyDays((prev) =>
@@ -202,12 +203,12 @@ export default function HabitDialog({
 
           {cadenceType === "monthly" && (
             <label className="text-sm">
-              <span className="text-slate-600">Day of month</span>
+              <span className="st-label">Day of month</span>
               <input
                 type="number"
                 min={1}
                 max={31}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                className="st-input"
                 value={dayOfMonth}
                 onChange={(e) => setDayOfMonth(Number(e.target.value || 1))}
               />
@@ -216,11 +217,11 @@ export default function HabitDialog({
 
           {cadenceType === "custom" && (
             <label className="text-sm">
-              <span className="text-slate-600">Every N days</span>
+              <span className="st-label">Every N days</span>
               <input
                 type="number"
                 min={1}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                className="st-input"
                 value={customInterval}
                 onChange={(e) => setCustomInterval(Number(e.target.value || 1))}
               />
@@ -230,7 +231,7 @@ export default function HabitDialog({
           <div className="flex flex-wrap gap-2">
             {!isEdit && (
               <button
-                className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                className="st-button-primary disabled:opacity-50"
                 disabled={!isValid || (cadenceType === "weekly" && weeklyDays.length === 0) || create.isPending}
                 onClick={() => create.mutate()}
               >
@@ -241,21 +242,21 @@ export default function HabitDialog({
             {isEdit && (
               <>
                 <button
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                  className="st-button-primary disabled:opacity-50"
                   disabled={!isValid || (cadenceType === "weekly" && weeklyDays.length === 0) || save.isPending}
                   onClick={() => save.mutate()}
                 >
                   Save
                 </button>
                 <button
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm"
+                  className="st-button-secondary"
                   onClick={() => (completedToday ? undoToday.mutate() : completeToday.mutate())}
                   disabled={completeToday.isPending || undoToday.isPending}
                 >
                   {completedToday ? "Undo Today" : "Complete Today"}
                 </button>
                 <button
-                  className="rounded-md border border-rose-300 bg-rose-50 px-4 py-2 text-sm text-rose-800"
+                  className="st-button-danger"
                   onClick={() => remove.mutate()}
                   disabled={remove.isPending}
                 >
@@ -267,10 +268,11 @@ export default function HabitDialog({
         </div>
 
         {isEdit && (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <p className="text-sm font-semibold text-slate-800">Completion notes (optional)</p>
+          <div className="section-card">
+            <p className="st-kicker text-[color:var(--st-success)]">Completion</p>
+            <p className="mt-2 text-sm font-bold text-[color:var(--st-ink)]">Completion notes (optional)</p>
             <textarea
-              className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+              className="st-textarea mt-3 bg-white"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -282,4 +284,3 @@ export default function HabitDialog({
     </Modal>
   );
 }
-

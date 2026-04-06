@@ -11,17 +11,19 @@ import RegisterPage from "./pages/Register";
 
 function AppShell() {
   return (
-    <div className="flex min-h-screen">
+    <div className="app-shell flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 bg-slate-50 p-8">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/tasks" element={<TodoList />} />
-          <Route path="/habits" element={<HabitsPage />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/projects/:id" element={<ProjectDetail />} />
-        </Routes>
-      </main>
+      <div className="flex-1 p-3 md:p-6">
+        <main className="page-panel min-h-[calc(100vh-1.5rem)] md:min-h-[calc(100vh-3rem)]">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/tasks" element={<TodoList />} />
+            <Route path="/habits" element={<HabitsPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/projects/:id" element={<ProjectDetail />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }
@@ -29,7 +31,7 @@ function AppShell() {
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const location = useLocation();
-  if (isLoading) return <div className="p-8 text-sm text-slate-600">Loading…</div>;
+  if (isLoading) return <div className="p-8 text-sm text-slate-600">Loading SecreTerry…</div>;
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   return <>{children}</>;
 }

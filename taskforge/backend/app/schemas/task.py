@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..models.enums import TaskStatus
 
@@ -9,6 +9,7 @@ class TaskBase(BaseModel):
     name: str
     description: Optional[str] = None
     project_id: Optional[UUID] = None
+    expected_minutes: Optional[int] = Field(default=None, ge=1)
     due_date: Optional[date] = None
     tags: List[str] = []
 
@@ -20,6 +21,7 @@ class TaskUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     project_id: Optional[UUID] = None
+    expected_minutes: Optional[int] = Field(default=None, ge=1)
     due_date: Optional[date] = None
     tags: Optional[List[str]] = None
     status: Optional[TaskStatus] = None
@@ -42,3 +44,9 @@ class TaskRead(TaskBase):
     completion_notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+
+
+class TaskSuggestionRead(BaseModel):
+    task: TaskRead
+    selection_mode: str
+    message: str

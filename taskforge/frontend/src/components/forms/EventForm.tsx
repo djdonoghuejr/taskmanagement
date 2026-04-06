@@ -11,7 +11,7 @@ export default function EventForm({
 
   return (
     <form
-      className="flex flex-wrap items-end gap-2"
+      className="flex flex-wrap items-end gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (!title.trim()) return;
@@ -25,35 +25,33 @@ export default function EventForm({
       }}
     >
       <div className="flex-1">
-        <label className="text-xs text-slate-500">Title</label>
+        <label className="st-label text-xs">Title</label>
         <input
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+          className="st-input"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Event title"
         />
       </div>
       <div>
-        <label className="text-xs text-slate-500">Start</label>
+        <label className="st-label text-xs">Start</label>
         <input
           type="datetime-local"
-          className="mt-1 rounded-md border border-slate-300 px-3 py-2"
+          className="st-input"
           value={start}
           onChange={(e) => setStart(e.target.value)}
         />
       </div>
       <div>
-        <label className="text-xs text-slate-500">End</label>
+        <label className="st-label text-xs">End</label>
         <input
           type="datetime-local"
-          className="mt-1 rounded-md border border-slate-300 px-3 py-2"
+          className="st-input"
           value={end}
           onChange={(e) => setEnd(e.target.value)}
         />
       </div>
-      <button className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white">
-        Add Event
-      </button>
+      <button className="st-button-primary">Add Event</button>
     </form>
   );
 }

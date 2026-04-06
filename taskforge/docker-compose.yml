@@ -17,6 +17,7 @@ services:
       context: ./backend
     environment:
       DATABASE_URL: postgresql+pg8000://taskforge:taskforge@db:5432/taskforge
+      ALLOWED_ORIGINS: http://localhost:5173
       SEED_DATA: "false"
     volumes:
       - ./backend:/app
