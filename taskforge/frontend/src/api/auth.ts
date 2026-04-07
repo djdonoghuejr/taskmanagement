@@ -27,3 +27,9 @@ export async function logout(): Promise<{ ok: boolean }> {
   return apiFetch<{ ok: boolean }>("/auth/logout", { method: "POST" });
 }
 
+export async function changePassword(current_password: string, new_password: string): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ current_password, new_password }),
+  });
+}

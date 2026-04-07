@@ -17,6 +17,7 @@ import { Task, TaskActivity, TaskSummary } from "../types";
 import Modal from "./Modal";
 import BlockedCompleteDialog from "./BlockedCompleteDialog";
 import { listProjects } from "../api/projects";
+import FieldHint from "./FieldHint";
 
 function formatActivityTitle(a: TaskActivity): string {
   if (a.type === "created") return "Created";
@@ -59,12 +60,14 @@ export default function TaskDialog({
   task,
   initialDueDate,
   focusCompletionNotes = false,
+  onCreated,
   onClose,
 }: {
   open: boolean;
   task: Task | null;
   initialDueDate?: string;
   focusCompletionNotes?: boolean;
+  onCreated?: (task: Task) => void;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -208,8 +211,9 @@ export default function TaskDialog({
         blocked_by_ids: blockedBy.map((t) => t.id),
         blocking_ids: blocking.map((t) => t.id),
       }),
-    onSuccess: () => {
+    onSuccess: (createdTask) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      onCreated?.(createdTask);
       onClose();
     },
   });
@@ -355,6 +359,25 @@ export default function TaskDialog({
           </label>
 
           <label className="text-sm">
+            <span className="flex items-center gap-2">
+              <span className="st-label">Project</span>
+              <FieldHint label="Optional. Assign this task to one existing project so it appears in that project workspace." />
+            </span>
+            <select
+              className="st-select"
+              value={selectedProjectId}
+              onChange={(event) => setSelectedProjectId(event.target.value)}
+            >
+              <option value="">No project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm">
             <span className="st-label">Description</span>
             <textarea
               className="st-textarea"
@@ -376,7 +399,10 @@ export default function TaskDialog({
           </label>
 
           <label className="text-sm">
-            <span className="st-label">Expected Time</span>
+            <span className="flex items-center gap-2">
+              <span className="st-label">Expected Time</span>
+              <FieldHint label="Optional. Used by Get Something Done to suggest a task that fits the time you have." />
+            </span>
             <div className="relative">
               <input
                 type="number"
@@ -390,24 +416,6 @@ export default function TaskDialog({
                 minutes
               </span>
             </div>
-            <span className="st-helper mt-2 block">Optional. Used by “Get Something Done” to suggest a task that fits the time you have.</span>
-          </label>
-
-          <label className="text-sm">
-            <span className="st-label">Project</span>
-            <select
-              className="st-select"
-              value={selectedProjectId}
-              onChange={(event) => setSelectedProjectId(event.target.value)}
-            >
-              <option value="">No project</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-            <span className="st-helper mt-2 block">Projects are assigned from the Projects tab.</span>
           </label>
 
           <div className="section-card space-y-4">
@@ -574,10 +582,10 @@ export default function TaskDialog({
             </label>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {!isEdit && (
               <button
-                className="st-button-primary disabled:opacity-50"
+                className="st-button-primary w-full disabled:opacity-50 sm:w-auto"
                 disabled={!isValid || create.isPending}
                 onClick={() => create.mutate()}
               >
@@ -588,7 +596,7 @@ export default function TaskDialog({
             {isEdit && (
               <>
                 <button
-                  className="st-button-primary disabled:opacity-50"
+                  className="st-button-primary w-full disabled:opacity-50 sm:w-auto"
                   disabled={!isValid || save.isPending}
                   onClick={() => save.mutate()}
                 >
@@ -596,7 +604,7 @@ export default function TaskDialog({
                 </button>
                 {effectiveTask?.status !== "completed" ? (
                   <button
-                    className="st-button-secondary"
+                    className="st-button-secondary w-full sm:w-auto"
                     onClick={() => {
                       if (effectiveTask?.status === "blocked") {
                         setBlockedConfirmOpen(true);
@@ -610,7 +618,7 @@ export default function TaskDialog({
                   </button>
                 ) : (
                   <button
-                    className="st-button-secondary"
+                    className="st-button-secondary w-full sm:w-auto"
                     onClick={() => reopen.mutate()}
                     disabled={reopen.isPending}
                   >
@@ -618,14 +626,14 @@ export default function TaskDialog({
                   </button>
                 )}
                 <button
-                  className="st-button-secondary"
+                  className="st-button-secondary w-full sm:w-auto"
                   onClick={() => duplicate.mutate()}
                   disabled={duplicate.isPending}
                 >
                   Duplicate
                 </button>
                 <button
-                  className="st-button-danger"
+                  className="st-button-danger w-full sm:w-auto"
                   onClick={() => remove.mutate()}
                   disabled={remove.isPending}
                 >
@@ -684,7 +692,7 @@ export default function TaskDialog({
                 />
                 <div className="flex justify-end">
                   <button
-                    className="st-button-primary disabled:opacity-50"
+                    className="st-button-primary w-full disabled:opacity-50 sm:w-auto"
                     disabled={!comment.trim() || addCommentMut.isPending}
                     onClick={() => addCommentMut.mutate()}
                   >

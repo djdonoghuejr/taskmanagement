@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
@@ -8,22 +8,64 @@ import CalendarPage from "./pages/Calendar";
 import ProjectDetail from "./pages/ProjectDetail";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
+import AccountPage from "./pages/Account";
 
 function AppShell() {
+  const location = useLocation();
+  const routeTitle = (() => {
+    if (location.pathname === "/") return "Home";
+    if (location.pathname.startsWith("/tasks")) return "Tasks";
+    if (location.pathname.startsWith("/habits")) return "Habits";
+    if (location.pathname.startsWith("/calendar")) return "Calendar";
+    if (location.pathname.startsWith("/projects")) return "Projects";
+    if (location.pathname.startsWith("/account")) return "Account";
+    return "SecreTerry";
+  })();
+
   return (
-    <div className="app-shell flex min-h-screen">
+    <div className="app-shell flex min-h-screen flex-col md:flex-row">
+      <div className="st-mobile-topbar md:hidden">
+        <div>
+          <p className="st-kicker text-[color:var(--st-brand)]">SecreTerry</p>
+          <h1 className="mt-1 text-xl font-extrabold tracking-tight text-[color:var(--st-ink)]">{routeTitle}</h1>
+        </div>
+        <div className="rounded-2xl border border-[color:var(--st-border)] bg-white/80 px-3 py-2 text-right shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--st-ink-muted)]">Today</p>
+          <p className="mt-1 text-sm font-semibold text-[color:var(--st-ink)]">
+            {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </p>
+        </div>
+      </div>
       <Sidebar />
-      <div className="flex-1 p-3 md:p-6">
-        <main className="page-panel min-h-[calc(100vh-1.5rem)] md:min-h-[calc(100vh-3rem)]">
+      <div className="flex-1 px-3 pb-24 pt-2 md:p-6">
+        <main className="page-panel min-h-[calc(100vh-9rem)] md:min-h-[calc(100vh-3rem)]">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/tasks" element={<TodoList />} />
             <Route path="/habits" element={<HabitsPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
+            <Route path="/account" element={<AccountPage />} />
           </Routes>
         </main>
       </div>
+      <nav className="st-mobile-nav md:hidden" aria-label="Primary">
+        <NavLink to="/" end className={({ isActive }) => `st-mobile-nav-link ${isActive ? "st-mobile-nav-link-active" : ""}`}>
+          <span className="st-mobile-nav-label">Home</span>
+        </NavLink>
+        <NavLink to="/tasks" className={({ isActive }) => `st-mobile-nav-link ${isActive ? "st-mobile-nav-link-active" : ""}`}>
+          <span className="st-mobile-nav-label">Tasks</span>
+        </NavLink>
+        <NavLink to="/habits" className={({ isActive }) => `st-mobile-nav-link ${isActive ? "st-mobile-nav-link-active" : ""}`}>
+          <span className="st-mobile-nav-label">Habits</span>
+        </NavLink>
+        <NavLink to="/projects/overview" className={({ isActive }) => `st-mobile-nav-link ${isActive ? "st-mobile-nav-link-active" : ""}`}>
+          <span className="st-mobile-nav-label">Projects</span>
+        </NavLink>
+        <NavLink to="/account" className={({ isActive }) => `st-mobile-nav-link ${isActive ? "st-mobile-nav-link-active" : ""}`}>
+          <span className="st-mobile-nav-label">Account</span>
+        </NavLink>
+      </nav>
     </div>
   );
 }

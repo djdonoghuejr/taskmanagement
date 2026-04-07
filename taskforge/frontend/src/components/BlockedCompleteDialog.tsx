@@ -61,18 +61,18 @@ export default function BlockedCompleteDialog({
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button className="st-button-secondary" onClick={onClose}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <button className="st-button-secondary w-full sm:w-auto" onClick={onClose}>
             Cancel
           </button>
-          <button className="st-button-secondary" onClick={() => {
+          <button className="st-button-secondary w-full sm:w-auto" onClick={() => {
               onClose();
               onViewBlockers();
             }}>
             View blockers
           </button>
           <button
-            className="st-button-primary disabled:opacity-50"
+            className="st-button-primary w-full disabled:opacity-50 sm:w-auto"
             disabled={removeBlocksAndComplete.isPending}
             onClick={() => removeBlocksAndComplete.mutate()}
           >

@@ -33,12 +33,14 @@ export default function CalendarPage() {
       <div className="section-card">
         <EventForm onSubmit={(payload) => addEvent.mutate(payload)} />
       </div>
-      <CalendarView
-        events={events}
-        onDatesSet={(info) =>
-          setRange({ start: info.startStr.slice(0, 10), end: info.endStr.slice(0, 10) })
-        }
-      />
+      <div className="overflow-hidden">
+        <CalendarView
+          events={events}
+          onDatesSet={(info) =>
+            setRange({ start: info.startStr.slice(0, 10), end: info.endStr.slice(0, 10) })
+          }
+        />
+      </div>
     </div>
   );
 }

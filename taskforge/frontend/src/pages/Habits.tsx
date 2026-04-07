@@ -54,16 +54,13 @@ export default function HabitsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div>
           <p className="st-kicker text-[color:var(--st-habit)]">Rhythm builder</p>
           <h2 className="page-title mt-2">Habits</h2>
           <p className="page-subtitle">Recurring commitments with a cleaner cadence, stronger status cues, and better daily momentum.</p>
         </div>
-        <button
-          className="st-button-primary"
-          onClick={() => setCreateOpen(true)}
-        >
+        <button className="st-button-primary w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
           Add Habit
         </button>
       </div>

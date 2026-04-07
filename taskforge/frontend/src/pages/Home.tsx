@@ -25,19 +25,19 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div>
           <p className="st-kicker text-[color:var(--st-brand)]">SecreTerry HQ</p>
           <h2 className="page-title mt-2">Everything in motion, one calm workspace.</h2>
           <p className="page-subtitle">Today, upcoming, and history arranged to help you steer the day without friction.</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button className="st-button-primary" onClick={() => setGetSomethingDoneOpen(true)}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <button className="st-button-primary w-full sm:w-auto" onClick={() => setGetSomethingDoneOpen(true)}>
             Get Something Done
           </button>
 
-          <div className="st-pill-group" role="group" aria-label="Home view filter">
+          <div className="st-pill-group w-full justify-between sm:w-auto" role="group" aria-label="Home view filter">
             <button
               className={`st-pill-toggle ${view === "today" ? "st-pill-toggle-active" : ""}`}
               onClick={() => setView("today")}

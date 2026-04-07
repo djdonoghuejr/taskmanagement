@@ -228,10 +228,10 @@ export default function HabitDialog({
             </label>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {!isEdit && (
               <button
-                className="st-button-primary disabled:opacity-50"
+                className="st-button-primary w-full disabled:opacity-50 sm:w-auto"
                 disabled={!isValid || (cadenceType === "weekly" && weeklyDays.length === 0) || create.isPending}
                 onClick={() => create.mutate()}
               >
@@ -242,21 +242,21 @@ export default function HabitDialog({
             {isEdit && (
               <>
                 <button
-                  className="st-button-primary disabled:opacity-50"
+                  className="st-button-primary w-full disabled:opacity-50 sm:w-auto"
                   disabled={!isValid || (cadenceType === "weekly" && weeklyDays.length === 0) || save.isPending}
                   onClick={() => save.mutate()}
                 >
                   Save
                 </button>
                 <button
-                  className="st-button-secondary"
+                  className="st-button-secondary w-full sm:w-auto"
                   onClick={() => (completedToday ? undoToday.mutate() : completeToday.mutate())}
                   disabled={completeToday.isPending || undoToday.isPending}
                 >
                   {completedToday ? "Undo Today" : "Complete Today"}
                 </button>
                 <button
-                  className="st-button-danger"
+                  className="st-button-danger w-full sm:w-auto"
                   onClick={() => remove.mutate()}
                   disabled={remove.isPending}
                 >
