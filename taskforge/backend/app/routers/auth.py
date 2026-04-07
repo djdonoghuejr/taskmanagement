@@ -19,7 +19,7 @@ from ..models.auth_identity import AuthIdentity
 from ..models.email_verification_token import EmailVerificationToken
 from ..models.session import Session as DbSession
 from ..models.user import User
-from ..schemas.auth import LoginRequest, RegisterRequest, UserMe, VerifyEmailRequest
+from ..schemas.auth import ChangePasswordRequest, LoginRequest, RegisterRequest, UserMe, VerifyEmailRequest
 from ..services.auth import (
     expires_in_days,
     hash_password,
@@ -196,6 +196,28 @@ def logout(
 @router.get("/me", response_model=UserMe)
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return _user_me(db, user)
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    identity = (
+        db.query(AuthIdentity)
+        .filter(AuthIdentity.user_id == user.id, AuthIdentity.provider == "local")
+        .first()
+    )
+    if not identity or not identity.password_hash:
+        raise HTTPException(status_code=400, detail="Password login is not available for this account")
+    if not verify_password(payload.current_password, identity.password_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    identity.password_hash = hash_password(payload.new_password)
+    db.add(identity)
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/request-email-verification")

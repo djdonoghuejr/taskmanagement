@@ -7,6 +7,7 @@ import { isDueOn } from "../utils/habits";
 import TaskDialog from "../components/TaskDialog";
 import HabitDialog from "../components/HabitDialog";
 import BlockedCompleteDialog from "../components/BlockedCompleteDialog";
+import FloatingNotice from "../components/FloatingNotice";
 import { Habit, Task } from "../types";
 
 function CheckIcon({ className }: { className?: string }) {
@@ -78,6 +79,7 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
   }, [tasks, dueTodayHabits]);
 
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
   const [focusTaskCompletionNotes, setFocusTaskCompletionNotes] = useState(false);
@@ -96,7 +98,7 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className="space-y-6">
       {!embedded && (
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
             <p className="st-kicker text-[color:var(--st-brand)]">Daily focus</p>
             <h2 className="page-title mt-2">Today</h2>
@@ -131,7 +133,7 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
             <p className="section-copy mt-1">Tasks first, habits alongside them, all easy to scan and act on.</p>
           </div>
           <button
-            className="st-button-primary"
+            className="st-button-primary w-full sm:w-auto"
             onClick={() => setCreateTaskOpen(true)}
           >
             Add Task
@@ -175,7 +177,7 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
                         </p>
                       ) : null}
                     </div>
-                    <div className="shrink-0 text-right">
+                    <div className="ml-auto shrink-0 text-right">
                       <button
                         type="button"
                         className={`st-complete-ring h-12 w-12 ${task.status === "completed" ? "st-complete-ring-success st-celebrate" : ""}`}
@@ -242,7 +244,19 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
         </div>
       </section>
 
-      <TaskDialog open={createTaskOpen} task={null} initialDueDate={today} onClose={() => setCreateTaskOpen(false)} />
+      <TaskDialog
+        open={createTaskOpen}
+        task={null}
+        initialDueDate={today}
+        onCreated={(task) =>
+          setSuccessMessage(
+            task.due_date
+              ? `“${task.name}” is saved for ${task.due_date}.`
+              : `“${task.name}” is saved and ready when you are.`
+          )
+        }
+        onClose={() => setCreateTaskOpen(false)}
+      />
       <TaskDialog
         open={Boolean(selectedTask)}
         task={selectedTask}
@@ -259,6 +273,7 @@ export default function Today({ embedded = false }: { embedded?: boolean }) {
         completedToday={selectedHabit ? completionIds.has(selectedHabit.id) : false}
         onClose={() => setSelectedHabit(null)}
       />
+      <FloatingNotice message={successMessage} onClose={() => setSuccessMessage(null)} />
 
       <BlockedCompleteDialog
         open={Boolean(blockedCompleteTarget)}

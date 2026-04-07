@@ -51,3 +51,25 @@ def test_register_login_me_logout_multi_session(anon_client, db_session):
         assert c2.get("/api/auth/me").status_code == 200
 
     app.dependency_overrides.clear()
+
+
+def test_change_password_updates_local_credentials(client, anon_client):
+    change = client.post(
+        "/api/auth/change-password",
+        json={"current_password": "password123", "new_password": "newpassword456"},
+    )
+    assert change.status_code == 200
+    assert change.json() == {"ok": True}
+
+    logout = client.post("/api/auth/logout")
+    assert logout.status_code == 200
+
+    anon_client.get("/api/auth/csrf")
+    csrf = anon_client.cookies.get("tf_csrf")
+    anon_client.headers.update({"X-CSRF-Token": csrf})
+
+    old_login = anon_client.post("/api/auth/login", json={"email": "test@example.com", "password": "password123"})
+    assert old_login.status_code == 401
+
+    new_login = anon_client.post("/api/auth/login", json={"email": "test@example.com", "password": "newpassword456"})
+    assert new_login.status_code == 200

@@ -105,13 +105,13 @@ export default function ProjectDetail() {
   if (id === "overview") {
     return (
       <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
             <p className="st-kicker text-[color:var(--st-accent)]">Project map</p>
             <h2 className="page-title mt-2">Projects</h2>
             <p className="page-subtitle">Create focused project spaces, then assign tasks into them from the task editor.</p>
           </div>
-          <button className="st-button-primary" onClick={() => {
+          <button className="st-button-primary w-full sm:w-auto" onClick={() => {
             setEditingProject(null);
             setProjectDialogOpen(true);
           }}>
@@ -215,7 +215,7 @@ export default function ProjectDetail() {
   return (
     <div className="space-y-6">
       <div className="section-card">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
             <span className="mt-1 h-4 w-4 rounded-full shadow-sm" style={{ backgroundColor: project.color }} />
             <div>
@@ -227,7 +227,7 @@ export default function ProjectDetail() {
             </div>
           </div>
           <button
-            className="st-button-secondary"
+            className="st-button-secondary w-full sm:w-auto"
             onClick={() => {
               setEditingProject(project);
               setProjectDialogOpen(true);

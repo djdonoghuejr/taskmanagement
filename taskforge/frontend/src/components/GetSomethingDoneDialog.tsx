@@ -76,9 +76,9 @@ export default function GetSomethingDoneDialog({
           </div>
         </label>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <button
-            className="st-button-primary disabled:opacity-50"
+            className="st-button-primary w-full disabled:opacity-50 sm:w-auto"
             disabled={!canSubmit || suggest.isPending}
             onClick={() => void requestSuggestion([])}
           >
@@ -86,7 +86,7 @@ export default function GetSomethingDoneDialog({
           </button>
           {suggestion ? (
             <button
-              className="st-button-secondary"
+              className="st-button-secondary w-full sm:w-auto"
               disabled={suggest.isPending}
               onClick={() => void requestSuggestion(seenTaskIds)}
             >

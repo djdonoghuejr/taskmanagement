@@ -148,6 +148,8 @@ describe("TodoList", () => {
     await waitFor(() => expect(mockCreateTask).toHaveBeenCalled());
     expect(mockCreateTask).toHaveBeenCalledWith(expect.objectContaining({ project_id: "project-1" }));
     await waitFor(() => expect(screen.getByText("My Task")).toBeInTheDocument());
+    expect(screen.getByText("Task created")).toBeInTheDocument();
+    expect(screen.getByText("“My Task” is saved and ready when you are.")).toBeInTheDocument();
   });
 
   it("opens task details and saves changes", async () => {

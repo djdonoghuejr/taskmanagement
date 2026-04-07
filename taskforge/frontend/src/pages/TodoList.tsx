@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { completeTask, deleteTask, duplicateTask, listTasks } from "../api/tasks";
 import TaskDialog from "../components/TaskDialog";
 import BlockedCompleteDialog from "../components/BlockedCompleteDialog";
+import FloatingNotice from "../components/FloatingNotice";
 import { Task } from "../types";
 
 export default function TodoList() {
@@ -10,6 +11,7 @@ export default function TodoList() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [focusTaskCompletionNotes, setFocusTaskCompletionNotes] = useState(false);
   const [blockedCompleteTarget, setBlockedCompleteTarget] = useState<Task | null>(null);
 
@@ -46,14 +48,14 @@ export default function TodoList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div>
           <p className="st-kicker text-[color:var(--st-brand)]">Task center</p>
           <h2 className="page-title mt-2">Tasks</h2>
           <p className="page-subtitle">Sharper hierarchy, denser scanning, and stronger completion feedback.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 rounded-full border border-[color:var(--st-border)] bg-white/75 px-4 py-2 text-sm text-[color:var(--st-ink-soft)] shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <label className="flex min-h-[44px] items-center gap-2 rounded-full border border-[color:var(--st-border)] bg-white/75 px-4 py-2 text-sm text-[color:var(--st-ink-soft)] shadow-sm">
             <input
               type="checkbox"
               checked={showCompleted}
@@ -61,7 +63,7 @@ export default function TodoList() {
             />
             Show Completed
           </label>
-          <button className="st-button-primary" onClick={() => setCreateOpen(true)}>Add Task</button>
+          <button className="st-button-primary w-full sm:w-auto" onClick={() => setCreateOpen(true)}>Add Task</button>
         </div>
       </div>
 
@@ -89,11 +91,7 @@ export default function TodoList() {
             <div className="p-5 text-sm text-[color:var(--st-ink-soft)]">No tasks.</div>
           )}
           {filtered.map((task) => (
-            <div
-              key={task.id}
-              className="st-row st-interactive-row"
-              data-testid={`task-row-${task.id}`}
-            >
+            <div key={task.id} className="st-row st-interactive-row flex-col sm:flex-row" data-testid={`task-row-${task.id}`}>
               <button
                 type="button"
                 className="min-w-0 flex-1 text-left"
@@ -120,9 +118,9 @@ export default function TodoList() {
                 </div>
               </button>
 
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex w-full shrink-0 flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
                 {task.status !== "completed" && (
-                  <div className="text-right">
+                  <div className="ml-auto text-right sm:ml-0">
                     <button
                       type="button"
                       className="st-complete-ring h-11 w-11"
@@ -175,7 +173,18 @@ export default function TodoList() {
         </div>
       </div>
 
-      <TaskDialog open={createOpen} task={null} onClose={() => setCreateOpen(false)} />
+      <TaskDialog
+        open={createOpen}
+        task={null}
+        onCreated={(task) =>
+          setSuccessMessage(
+            task.due_date
+              ? `“${task.name}” is saved for ${task.due_date}.`
+              : `“${task.name}” is saved and ready when you are.`
+          )
+        }
+        onClose={() => setCreateOpen(false)}
+      />
       <TaskDialog
         open={Boolean(selectedTask)}
         task={selectedTask}
@@ -185,6 +194,7 @@ export default function TodoList() {
           setFocusTaskCompletionNotes(false);
         }}
       />
+      <FloatingNotice message={successMessage} onClose={() => setSuccessMessage(null)} />
 
       <BlockedCompleteDialog
         open={Boolean(blockedCompleteTarget)}

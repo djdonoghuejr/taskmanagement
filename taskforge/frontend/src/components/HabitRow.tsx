@@ -15,7 +15,7 @@ export default function HabitRow({
 }) {
   return (
     <div
-      className={`st-surface group flex w-full items-center justify-between gap-4 p-4 text-left transition ${
+      className={`st-surface group flex w-full flex-col gap-4 p-4 text-left transition sm:flex-row sm:items-center sm:justify-between ${
         disabled ? "cursor-not-allowed opacity-70" : "hover:-translate-y-0.5 hover:bg-white"
       } ${checked ? "border-[color:rgba(31,138,98,0.2)]" : ""}`}
     >
@@ -42,7 +42,7 @@ export default function HabitRow({
           e.stopPropagation();
           onToggle();
         }}
-        className={`st-complete-ring h-11 w-11 shrink-0 text-lg ${checked ? "st-complete-ring-success st-celebrate" : "text-[color:var(--st-ink-muted)]"}`}
+        className={`st-complete-ring h-11 w-11 shrink-0 self-end text-lg sm:self-auto ${checked ? "st-complete-ring-success st-celebrate" : "text-[color:var(--st-ink-muted)]"}`}
         aria-pressed={checked}
         aria-label={checked ? "Undo completion" : "Complete"}
       >
