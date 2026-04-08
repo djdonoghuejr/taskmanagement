@@ -10,6 +10,8 @@ from ..config import (
     COOKIE_SAMESITE,
     COOKIE_SECURE,
     CSRF_COOKIE_NAME,
+    MOBILE_ACCESS_TOKEN_TTL_MINUTES,
+    MOBILE_REFRESH_TOKEN_TTL_DAYS,
     SESSION_COOKIE_NAME,
     SESSION_TTL_DAYS,
 )
@@ -17,16 +19,21 @@ from ..database import get_db
 from ..deps.auth import get_current_user
 from ..models.auth_identity import AuthIdentity
 from ..models.email_verification_token import EmailVerificationToken
+from ..models.mobile_session import MobileSession
 from ..models.session import Session as DbSession
 from ..models.user import User
-from ..schemas.auth import ChangePasswordRequest, LoginRequest, RegisterRequest, UserMe, VerifyEmailRequest
+from ..schemas.auth import ChangePasswordRequest, LoginRequest, MobileAuthResponse, MobileRefreshRequest, RegisterRequest, UserMe, VerifyEmailRequest
 from ..services.auth import (
+    create_mobile_access_token,
     expires_in_days,
+    expires_in_minutes,
     hash_password,
+    new_mobile_refresh_token,
     new_session_token,
     normalize_email,
     sha256_hex,
     utcnow,
+    verify_mobile_access_token,
     verify_password,
 )
 
@@ -75,6 +82,20 @@ def _user_me(db: Session, user: User) -> UserMe:
         email=user.email,
         email_verified_at=user.email_verified_at,
         providers=sorted(providers),
+    )
+
+
+def _mobile_auth_response(db: Session, user: User, session: MobileSession, refresh_token: str) -> MobileAuthResponse:
+    access_expires_at = expires_in_minutes(MOBILE_ACCESS_TOKEN_TTL_MINUTES)
+    access_token = create_mobile_access_token(
+        user_id=str(user.id),
+        session_id=str(session.id),
+        expires_at=access_expires_at,
+    )
+    return MobileAuthResponse(
+        user=_user_me(db, user),
+        access_token=access_token,
+        refresh_token=refresh_token,
     )
 
 
@@ -160,6 +181,127 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         max_age_seconds=int(timedelta(days=SESSION_TTL_DAYS).total_seconds()),
     )
     return _user_me(db, user)
+
+
+@router.post("/mobile/register", response_model=MobileAuthResponse)
+def mobile_register(payload: RegisterRequest, db: Session = Depends(get_db)):
+    email = normalize_email(payload.email)
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email")
+
+    existing = db.query(User).filter(User.email == email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    user = User(email=email, email_verified_at=utcnow())
+    db.add(user)
+    db.flush()
+
+    identity = AuthIdentity(
+        user_id=user.id,
+        provider="local",
+        provider_subject=email,
+        password_hash=hash_password(payload.password),
+    )
+    db.add(identity)
+
+    refresh_token = new_mobile_refresh_token()
+    mobile_session = MobileSession(
+        user_id=user.id,
+        refresh_token_hash=sha256_hex(refresh_token),
+        refresh_expires_at=expires_in_days(MOBILE_REFRESH_TOKEN_TTL_DAYS),
+    )
+    db.add(mobile_session)
+    db.commit()
+    db.refresh(mobile_session)
+    return _mobile_auth_response(db, user, mobile_session, refresh_token)
+
+
+@router.post("/mobile/login", response_model=MobileAuthResponse)
+def mobile_login(payload: LoginRequest, db: Session = Depends(get_db)):
+    email = normalize_email(payload.email)
+    identity = (
+        db.query(AuthIdentity)
+        .filter(AuthIdentity.provider == "local", AuthIdentity.provider_subject == email)
+        .first()
+    )
+    if not identity or not identity.password_hash:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not verify_password(payload.password, identity.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    user = db.query(User).filter(User.id == identity.user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    refresh_token = new_mobile_refresh_token()
+    mobile_session = MobileSession(
+        user_id=user.id,
+        refresh_token_hash=sha256_hex(refresh_token),
+        refresh_expires_at=expires_in_days(MOBILE_REFRESH_TOKEN_TTL_DAYS),
+    )
+    db.add(mobile_session)
+    db.commit()
+    db.refresh(mobile_session)
+    return _mobile_auth_response(db, user, mobile_session, refresh_token)
+
+
+@router.post("/mobile/refresh", response_model=MobileAuthResponse)
+def mobile_refresh(payload: MobileRefreshRequest, db: Session = Depends(get_db)):
+    refresh_token_hash = sha256_hex(payload.refresh_token)
+    session = (
+        db.query(MobileSession)
+        .filter(
+            MobileSession.refresh_token_hash == refresh_token_hash,
+            MobileSession.revoked_at.is_(None),
+            MobileSession.refresh_expires_at > utcnow(),
+        )
+        .first()
+    )
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    user = db.query(User).filter(User.id == session.user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    session.last_seen_at = utcnow()
+    db.add(session)
+    db.commit()
+    return _mobile_auth_response(db, user, session, payload.refresh_token)
+
+
+@router.get("/mobile/me", response_model=UserMe)
+def mobile_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return _user_me(db, user)
+
+
+@router.post("/mobile/logout")
+def mobile_logout(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    authorization = request.headers.get("authorization", "") if request else ""
+    token = authorization.split(" ", 1)[1].strip() if authorization.lower().startswith("bearer ") else None
+    session = None
+    if token:
+        payload = verify_mobile_access_token(token)
+        if payload:
+            session = (
+                db.query(MobileSession)
+                .filter(
+                    MobileSession.id == payload.get("sid"),
+                    MobileSession.user_id == user.id,
+                    MobileSession.revoked_at.is_(None),
+                )
+                .first()
+            )
+    if session:
+        session.revoked_at = utcnow()
+        db.add(session)
+        db.commit()
+    return {"ok": True}
 
 
 @router.post("/logout")

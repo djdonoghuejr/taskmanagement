@@ -10,6 +10,7 @@ class TaskBase(BaseModel):
     description: Optional[str] = None
     project_id: Optional[UUID] = None
     expected_minutes: Optional[int] = Field(default=None, ge=1)
+    start_date: Optional[date] = None
     due_date: Optional[date] = None
     tags: List[str] = []
 
@@ -22,6 +23,7 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     project_id: Optional[UUID] = None
     expected_minutes: Optional[int] = Field(default=None, ge=1)
+    start_date: Optional[date] = None
     due_date: Optional[date] = None
     tags: Optional[List[str]] = None
     status: Optional[TaskStatus] = None

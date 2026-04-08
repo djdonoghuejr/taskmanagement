@@ -22,6 +22,11 @@ def enforce_origin_and_csrf(request: Request) -> None:
         return
     if request.method.upper() not in UNSAFE_METHODS:
         return
+    if path.startswith("/api/auth/mobile/"):
+        return
+    authorization = request.headers.get("authorization", "")
+    if authorization.lower().startswith("bearer "):
+        return
 
     # Origin allowlist (if configured). In dev/test, ALLOWED_ORIGINS may be empty.
     origin = request.headers.get("origin")
@@ -34,4 +39,3 @@ def enforce_origin_and_csrf(request: Request) -> None:
     csrf_header = request.headers.get("x-csrf-token")
     if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
         raise HTTPException(status_code=403, detail="CSRF check failed")
-

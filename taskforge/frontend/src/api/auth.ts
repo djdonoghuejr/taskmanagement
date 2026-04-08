@@ -1,15 +1,30 @@
-import { apiFetch } from "./client";
-import type { UserMe } from "../types";
+import { apiFetch, bootstrapApiAuth, isNativeApiAuth } from "./client";
+import { clearMobileSessionTokens, setMobileSessionTokens } from "../auth/mobileSession";
+import type { MobileAuthResponse, UserMe } from "../types";
+
+export async function bootstrapAuth(): Promise<void> {
+  await bootstrapApiAuth();
+}
 
 export async function getCsrf(): Promise<{ ok: boolean }> {
+  if (isNativeApiAuth()) return { ok: true };
   return apiFetch<{ ok: boolean }>("/auth/csrf");
 }
 
 export async function me(): Promise<UserMe> {
+  if (isNativeApiAuth()) return apiFetch<UserMe>("/auth/mobile/me");
   return apiFetch<UserMe>("/auth/me");
 }
 
 export async function register(email: string, password: string): Promise<UserMe> {
+  if (isNativeApiAuth()) {
+    const payload = await apiFetch<MobileAuthResponse>("/auth/mobile/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    await setMobileSessionTokens(payload);
+    return payload.user;
+  }
   return apiFetch<UserMe>("/auth/register", {
     method: "POST",
     body: JSON.stringify({ email, password }),
@@ -17,6 +32,14 @@ export async function register(email: string, password: string): Promise<UserMe>
 }
 
 export async function login(email: string, password: string): Promise<UserMe> {
+  if (isNativeApiAuth()) {
+    const payload = await apiFetch<MobileAuthResponse>("/auth/mobile/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    await setMobileSessionTokens(payload);
+    return payload.user;
+  }
   return apiFetch<UserMe>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
@@ -24,6 +47,13 @@ export async function login(email: string, password: string): Promise<UserMe> {
 }
 
 export async function logout(): Promise<{ ok: boolean }> {
+  if (isNativeApiAuth()) {
+    try {
+      return await apiFetch<{ ok: boolean }>("/auth/mobile/logout", { method: "POST" });
+    } finally {
+      await clearMobileSessionTokens();
+    }
+  }
   return apiFetch<{ ok: boolean }>("/auth/logout", { method: "POST" });
 }
 

@@ -15,6 +15,7 @@ class Task(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     expected_minutes = Column(Integer, nullable=True)
+    start_date = Column(Date, nullable=True)
     due_date = Column(Date, nullable=True)
     tags = Column(ARRAY(String), nullable=False, default=list)
     status = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.pending)

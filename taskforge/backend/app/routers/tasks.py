@@ -48,9 +48,15 @@ def _task_summary(task: Task) -> TaskSummary:
         id=task.id,
         name=task.name,
         status=task.status,
+        start_date=task.start_date,
         due_date=task.due_date,
         project_id=task.project_id,
     )
+
+
+def _validate_task_dates(*, start_date: Optional[date], due_date: Optional[date]) -> None:
+    if start_date and due_date and start_date > due_date:
+        raise HTTPException(status_code=400, detail="start_date cannot be after due_date")
 
 
 def _get_blocked_by_ids(db: Session, task_id: UUID) -> set[UUID]:
@@ -340,9 +346,11 @@ def create_task(payload: TaskCreate, user: User = Depends(get_current_user), db:
         description=payload.description,
         project_id=_validate_project_id(db, user_id=user.id, project_id=payload.project_id),
         expected_minutes=payload.expected_minutes,
+        start_date=payload.start_date,
         due_date=payload.due_date,
         tags=payload.tags or [],
     )
+    _validate_task_dates(start_date=task.start_date, due_date=task.due_date)
     db.add(task)
     db.flush()
     _create_activity(
@@ -414,9 +422,14 @@ def update_task(task_id: UUID, payload: TaskUpdate, user: User = Depends(get_cur
 
     old_due_date = task.due_date
     old_status = task.status
+    next_start_date = data["start_date"] if "start_date" in data else task.start_date
+    next_due_date = data["due_date"] if "due_date" in data else task.due_date
+    _validate_task_dates(start_date=next_start_date, due_date=next_due_date)
 
     if "due_date" in data:
         task.due_date = data["due_date"]
+    if "start_date" in data:
+        task.start_date = data["start_date"]
     if "project_id" in data:
         task.project_id = _validate_project_id(db, user_id=user.id, project_id=data["project_id"])
     if "expected_minutes" in data:
@@ -427,7 +440,7 @@ def update_task(task_id: UUID, payload: TaskUpdate, user: User = Depends(get_cur
             task.status = TaskStatus.completed
         # ignore pending/blocked from clients
     for field, value in data.items():
-        if field in {"due_date", "status", "project_id", "expected_minutes"}:
+        if field in {"due_date", "start_date", "status", "project_id", "expected_minutes"}:
             continue
         setattr(task, field, value)
 
@@ -570,6 +583,7 @@ def duplicate_task(task_id: UUID, user: User = Depends(get_current_user), db: Se
         name=task.name,
         description=task.description,
         expected_minutes=task.expected_minutes,
+        start_date=task.start_date,
         due_date=task.due_date,
         tags=list(task.tags or []),
         status=TaskStatus.pending,

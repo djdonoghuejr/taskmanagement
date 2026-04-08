@@ -1,9 +1,12 @@
 import base64
 import hashlib
 import hmac
+import json
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
+
+from ..config import MOBILE_TOKEN_SECRET
 
 
 def normalize_email(email: str) -> str:
@@ -48,6 +51,10 @@ def new_session_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def new_mobile_refresh_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
 def sha256_hex(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
@@ -59,3 +66,44 @@ def utcnow() -> datetime:
 def expires_in_days(days: int) -> datetime:
     return utcnow() + timedelta(days=days)
 
+
+def expires_in_minutes(minutes: int) -> datetime:
+    return utcnow() + timedelta(minutes=minutes)
+
+
+def _sign_token_payload(payload_b64: str) -> str:
+    digest = hmac.new(MOBILE_TOKEN_SECRET.encode("utf-8"), payload_b64.encode("utf-8"), hashlib.sha256).digest()
+    return _b64e(digest)
+
+
+def create_mobile_access_token(*, user_id: str, session_id: str, expires_at: datetime) -> str:
+    payload = {
+        "typ": "mobile_access",
+        "sub": user_id,
+        "sid": session_id,
+        "iat": int(utcnow().timestamp()),
+        "exp": int(expires_at.timestamp()),
+        "nonce": secrets.token_urlsafe(8),
+    }
+    payload_b64 = _b64e(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8"))
+    signature = _sign_token_payload(payload_b64)
+    return f"v1.{payload_b64}.{signature}"
+
+
+def verify_mobile_access_token(token: str) -> dict | None:
+    try:
+        version, payload_b64, signature = (token or "").split(".", 2)
+        if version != "v1":
+            return None
+        expected = _sign_token_payload(payload_b64)
+        if not hmac.compare_digest(signature, expected):
+            return None
+        payload = json.loads(_b64d(payload_b64).decode("utf-8"))
+        if payload.get("typ") != "mobile_access":
+            return None
+        exp = int(payload["exp"])
+        if exp < int(utcnow().timestamp()):
+            return None
+        return payload
+    except Exception:
+        return None

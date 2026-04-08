@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from app.models.mobile_session import MobileSession
 from app.models.session import Session
 
 
@@ -73,3 +74,41 @@ def test_change_password_updates_local_credentials(client, anon_client):
 
     new_login = anon_client.post("/api/auth/login", json={"email": "test@example.com", "password": "newpassword456"})
     assert new_login.status_code == 200
+
+
+def test_mobile_auth_refresh_and_logout(anon_client, db_session):
+    register = anon_client.post(
+        "/api/auth/mobile/register",
+        json={"email": "android@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    payload = register.json()
+    user_id = UUID(payload["user"]["id"])
+
+    assert db_session.query(MobileSession).filter(MobileSession.user_id == user_id).count() == 1
+
+    access_token = payload["access_token"]
+    refresh_token = payload["refresh_token"]
+    anon_client.headers.update({"Authorization": f"Bearer {access_token}"})
+
+    me = anon_client.get("/api/auth/mobile/me")
+    assert me.status_code == 200
+    tasks = anon_client.get("/api/tasks")
+    assert tasks.status_code == 200
+
+    refreshed = anon_client.post("/api/auth/mobile/refresh", json={"refresh_token": refresh_token})
+    assert refreshed.status_code == 200
+    refreshed_payload = refreshed.json()
+    assert refreshed_payload["user"]["id"] == payload["user"]["id"]
+    assert refreshed_payload["refresh_token"] == refresh_token
+    assert refreshed_payload["access_token"] != access_token
+
+    anon_client.headers.update({"Authorization": f"Bearer {refreshed_payload['access_token']}"})
+    logout = anon_client.post("/api/auth/mobile/logout")
+    assert logout.status_code == 200
+
+    unauthorized = anon_client.get("/api/auth/mobile/me")
+    assert unauthorized.status_code == 401
+
+    expired_refresh = anon_client.post("/api/auth/mobile/refresh", json={"refresh_token": refresh_token})
+    assert expired_refresh.status_code == 401

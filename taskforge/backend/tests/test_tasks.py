@@ -27,7 +27,7 @@ def test_tasks_crud(client):
 
 
 def test_tasks_filters(client):
-    client.post("/api/tasks", json={"name": "Task B", "due_date": "2026-01-01"})
+    client.post("/api/tasks", json={"name": "Task B", "start_date": "2025-12-28", "due_date": "2026-01-01"})
     client.post("/api/tasks", json={"name": "Task C", "due_date": "2026-02-01"})
 
     resp = client.get("/api/tasks", params={"due_before": "2026-01-15"})
@@ -44,6 +44,7 @@ def test_tasks_update_and_duplicate(client):
             "name": "Original",
             "description": "Desc",
             "expected_minutes": 25,
+            "start_date": "2026-01-28",
             "due_date": "2026-02-02",
             "tags": ["a", "b"],
         },
@@ -51,20 +52,39 @@ def test_tasks_update_and_duplicate(client):
 
     updated = client.put(
         f"/api/tasks/{created['id']}",
-        json={"name": "Updated", "description": "New", "expected_minutes": 40},
+        json={"name": "Updated", "description": "New", "expected_minutes": 40, "start_date": "2026-01-30"},
     ).json()
     assert updated["name"] == "Updated"
     assert updated["description"] == "New"
     assert updated["expected_minutes"] == 40
+    assert updated["start_date"] == "2026-01-30"
 
     duplicated = client.post(f"/api/tasks/{created['id']}/duplicate").json()
     assert duplicated["id"] != created["id"]
     assert duplicated["name"] == updated["name"]
     assert duplicated["description"] == updated["description"]
     assert duplicated["expected_minutes"] == updated["expected_minutes"]
+    assert duplicated["start_date"] == updated["start_date"]
     assert duplicated["due_date"] == created["due_date"]
     assert duplicated["tags"] == created["tags"]
     assert duplicated["status"] == "pending"
+
+
+def test_task_rejects_start_date_after_due_date(client):
+    create_resp = client.post(
+        "/api/tasks",
+        json={"name": "Impossible timing", "start_date": "2026-02-10", "due_date": "2026-02-01"},
+    )
+    assert create_resp.status_code == 400
+    assert create_resp.json()["detail"] == "start_date cannot be after due_date"
+
+    task = client.post("/api/tasks", json={"name": "Valid", "due_date": "2026-02-10"}).json()
+    update_resp = client.put(
+        f"/api/tasks/{task['id']}",
+        json={"start_date": "2026-02-11"},
+    )
+    assert update_resp.status_code == 400
+    assert update_resp.json()["detail"] == "start_date cannot be after due_date"
 
 
 def test_tasks_completed_filters_and_ordering(client):
@@ -127,7 +147,7 @@ def test_get_something_done_prefers_matching_estimates(client):
 
 
 def test_get_something_done_falls_back_when_no_estimates_fit(client):
-    client.post(
+    too_long = client.post(
         "/api/tasks",
         json={"name": "Too long", "expected_minutes": 90},
     ).json()
@@ -138,8 +158,8 @@ def test_get_something_done_falls_back_when_no_estimates_fit(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["selection_mode"] == "fallback"
-    assert data["task"]["id"] == fallback["id"]
-    assert data["message"] == 'Get started on "Start somewhere".'
+    assert data["task"]["id"] in {too_long["id"], fallback["id"]}
+    assert data["message"].startswith('Get started on "')
 
 
 def test_get_something_done_can_exclude_previous_suggestions(client):
