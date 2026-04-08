@@ -6,11 +6,21 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:android": "sh -c 'VITE_API_BASE=${VITE_API_BASE:-https://secreterry.onrender.com/api} vite build'",
     "preview": "vite preview",
+    "cap:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:debug": "npm run build:android && npm run cap:sync",
+    "android:apk": "npm run build:android && npm run cap:sync && cd android && ./gradlew assembleDebug",
     "test": "vitest",
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/keyboard": "^8.0.2",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@fullcalendar/daygrid": "^6.1.15",
     "@fullcalendar/interaction": "^6.1.15",
     "@fullcalendar/react": "^6.1.15",
@@ -20,6 +30,8 @@
     "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
     "@playwright/test": "^1.47.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.0",

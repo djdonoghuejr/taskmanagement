@@ -13,6 +13,7 @@ class TaskSummary(BaseModel):
     id: UUID
     name: str
     status: TaskStatus
+    start_date: Optional[date] = None
     due_date: Optional[date] = None
     project_id: Optional[UUID] = None
 
@@ -20,4 +21,3 @@ class TaskSummary(BaseModel):
 class TaskDependenciesRead(BaseModel):
     blocked_by: List[TaskSummary]
     blocking: List[TaskSummary]
-

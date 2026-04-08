@@ -19,6 +19,7 @@ export interface Task {
   name: string;
   description?: string | null;
   expected_minutes?: number | null;
+  start_date?: string | null;
   due_date?: string | null;
   tags: string[];
   status: TaskStatus;
@@ -33,6 +34,7 @@ export interface TaskSummary {
   name: string;
   status: TaskStatus;
   expected_minutes?: number | null;
+  start_date?: string | null;
   due_date?: string | null;
   project_id?: string | null;
 }
@@ -118,4 +120,10 @@ export interface UserMe {
   email: string;
   email_verified_at?: string | null;
   providers: string[];
+}
+
+export interface MobileAuthResponse {
+  user: UserMe;
+  access_token: string;
+  refresh_token: string;
 }

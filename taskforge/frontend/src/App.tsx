@@ -1,4 +1,8 @@
+import { useEffect } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
+import { StatusBar, Style } from "@capacitor/status-bar";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
@@ -9,6 +13,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
 import AccountPage from "./pages/Account";
+import { isNativeShell } from "./platform/runtime";
 
 function AppShell() {
   const location = useLocation();
@@ -21,6 +26,34 @@ function AppShell() {
     if (location.pathname.startsWith("/account")) return "Account";
     return "SecreTerry";
   })();
+
+  useEffect(() => {
+    if (!isNativeShell()) return;
+
+    void StatusBar.setStyle({ style: Style.Dark });
+    void StatusBar.setBackgroundColor({ color: "#f6f1e8" });
+    void Keyboard.setResizeMode({ mode: KeyboardResize.Body });
+
+    const listener = CapacitorApp.addListener("backButton", ({ canGoBack }) => {
+      const modalOpen = document.querySelector(".st-modal-shell");
+      if (modalOpen) {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        return;
+      }
+
+      const currentHash = window.location.hash.replace(/^#/, "") || "/";
+      if (canGoBack || currentHash !== "/") {
+        window.history.back();
+        return;
+      }
+
+      void CapacitorApp.minimizeApp();
+    });
+
+    return () => {
+      void listener.then((handle) => handle.remove());
+    };
+  }, []);
 
   return (
     <div className="app-shell flex min-h-screen flex-col md:flex-row">

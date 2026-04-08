@@ -1,6 +1,6 @@
-# TaskForge
+# SecreTerry
 
-Local-first task management app inspired by Asana.
+Your personal secretary to help you through your day.
 
 ## Prereqs
 - Docker Desktop
@@ -17,7 +17,6 @@ docker compose up --build
 3. Frontend: http://localhost:5173
 
 ## Notes
-- Uses a fixed system user ID: `00000000-0000-0000-0000-000000000001`.
 - DB timestamps are stored in UTC.
 - Seed data runs on backend startup when `SEED_DATA=true`.
 - Backend Postgres driver is `pg8000` (pure Python) via `postgresql+pg8000://...` URLs.
@@ -42,6 +41,32 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## Android (Capacitor)
+
+From `frontend/`:
+
+```bash
+cp .env.android.example .env.android.local
+npm run build:android
+npm run cap:sync
+```
+
+Open Android Studio:
+
+```bash
+npm run android:open
+```
+
+Build a sideloadable debug APK:
+
+```bash
+npm run android:apk
+```
+
+Notes:
+- The Android build expects `VITE_API_BASE` to point at a reachable backend, e.g. `https://secreterry.onrender.com/api`.
+- Web keeps using cookie auth; the Android shell uses mobile token auth.
 
 ## Tests
 

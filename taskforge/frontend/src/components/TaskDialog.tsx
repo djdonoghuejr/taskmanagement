@@ -98,6 +98,7 @@ export default function TaskDialog({
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [expectedMinutes, setExpectedMinutes] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState("");
@@ -145,6 +146,7 @@ export default function TaskDialog({
     if (!open) return;
     setName(effectiveTask?.name || "");
     setDescription(effectiveTask?.description || "");
+    setStartDate(effectiveTask?.start_date || "");
     setDueDate(effectiveTask?.due_date || initialDueDate || "");
     setExpectedMinutes(effectiveTask?.expected_minutes ? String(effectiveTask.expected_minutes) : "");
     setSelectedProjectId(effectiveTask?.project_id || "");
@@ -207,6 +209,7 @@ export default function TaskDialog({
         description: description || null,
         project_id: selectedProjectId || null,
         expected_minutes: expectedMinutes ? Number(expectedMinutes) : null,
+        start_date: startDate || null,
         due_date: dueDate || null,
         blocked_by_ids: blockedBy.map((t) => t.id),
         blocking_ids: blocking.map((t) => t.id),
@@ -226,6 +229,7 @@ export default function TaskDialog({
         description: description || null,
         project_id: selectedProjectId || null,
         expected_minutes: expectedMinutes ? Number(expectedMinutes) : null,
+        start_date: startDate || null,
         due_date: dueDate || null,
         blocked_by_ids: blockedBy.map((t) => t.id),
         blocking_ids: blocking.map((t) => t.id),
@@ -385,6 +389,16 @@ export default function TaskDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What is this about?"
+            />
+          </label>
+
+          <label className="text-sm">
+            <span className="st-label">Start Date</span>
+            <input
+              type="date"
+              className="st-input"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
             />
           </label>
 
