@@ -5,6 +5,10 @@ const config: CapacitorConfig = {
   appName: "SecreTerry",
   webDir: "dist",
   bundledWebRuntime: false,
+  server: {
+    hostname: "localhost",
+    androidScheme: "http",
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 600,
