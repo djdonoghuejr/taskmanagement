@@ -17,6 +17,7 @@ import { isNativeShell } from "./platform/runtime";
 
 function AppShell() {
   const location = useLocation();
+  const nativeShell = isNativeShell();
   const routeTitle = (() => {
     if (location.pathname === "/") return "Home";
     if (location.pathname.startsWith("/tasks")) return "Tasks";
@@ -28,11 +29,33 @@ function AppShell() {
   })();
 
   useEffect(() => {
-    if (!isNativeShell()) return;
+    if (!nativeShell) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    body.classList.add("st-native-shell");
+
+    const updateViewportHeight = () => {
+      const height = window.visualViewport?.height ?? window.innerHeight;
+      root.style.setProperty("--st-app-height", `${height}px`);
+    };
+
+    const keepFocusedFieldVisible = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.matches("input, textarea, select")) return;
+      window.setTimeout(() => {
+        target.scrollIntoView({ block: "center", behavior: "smooth" });
+      }, 160);
+    };
 
     void StatusBar.setStyle({ style: Style.Dark });
     void StatusBar.setBackgroundColor({ color: "#f6f1e8" });
     void Keyboard.setResizeMode({ mode: KeyboardResize.Body });
+    updateViewportHeight();
+    window.addEventListener("resize", updateViewportHeight);
+    window.visualViewport?.addEventListener("resize", updateViewportHeight);
+    window.addEventListener("focusin", keepFocusedFieldVisible);
 
     const listener = CapacitorApp.addListener("backButton", ({ canGoBack }) => {
       const modalOpen = document.querySelector(".st-modal-shell");
@@ -51,12 +74,17 @@ function AppShell() {
     });
 
     return () => {
+      body.classList.remove("st-native-shell");
+      root.style.removeProperty("--st-app-height");
+      window.removeEventListener("resize", updateViewportHeight);
+      window.visualViewport?.removeEventListener("resize", updateViewportHeight);
+      window.removeEventListener("focusin", keepFocusedFieldVisible);
       void listener.then((handle) => handle.remove());
     };
-  }, []);
+  }, [nativeShell]);
 
   return (
-    <div className="app-shell flex min-h-screen flex-col md:flex-row">
+    <div className={`app-shell flex min-h-screen flex-col md:flex-row${nativeShell ? " st-native-app-shell" : ""}`}>
       <div className="st-mobile-topbar md:hidden">
         <div>
           <p className="st-kicker text-[color:var(--st-brand)]">SecreTerry</p>
@@ -71,7 +99,7 @@ function AppShell() {
       </div>
       <Sidebar />
       <div className="flex-1 px-3 pb-24 pt-2 md:p-6">
-        <main className="page-panel min-h-[calc(100vh-9rem)] md:min-h-[calc(100vh-3rem)]">
+        <main className="page-panel st-main-panel">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/tasks" element={<TodoList />} />

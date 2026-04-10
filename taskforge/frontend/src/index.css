@@ -6,6 +6,7 @@
 
 :root {
   color-scheme: light;
+  --st-app-height: 100vh;
   --st-bg: #f4f1eb;
   --st-bg-elevated: rgba(255, 255, 255, 0.82);
   --st-bg-panel: #fffdf8;
@@ -46,14 +47,14 @@
   }
 
   body {
-    min-height: 100vh;
+    min-height: var(--st-app-height);
     font-family: "Manrope", "Segoe UI", sans-serif;
     color: var(--st-ink);
     background: transparent;
   }
 
   #root {
-    min-height: 100vh;
+    min-height: var(--st-app-height);
   }
 
   button,
@@ -81,6 +82,7 @@
 @layer components {
   .app-shell {
     @apply relative min-h-screen;
+    min-height: var(--st-app-height);
     background:
       radial-gradient(circle at 0% 0%, rgba(29, 107, 98, 0.08), transparent 28%),
       radial-gradient(circle at 100% 0%, rgba(235, 139, 90, 0.08), transparent 22%),
@@ -93,6 +95,10 @@
     border-color: var(--st-border);
     backdrop-filter: blur(18px);
     box-shadow: var(--st-shadow-sm);
+  }
+
+  .st-main-panel {
+    min-height: calc(var(--st-app-height) - 9rem);
   }
 
   .page-title {
@@ -288,6 +294,7 @@
 
   .st-modal-shell {
     @apply fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-6;
+    padding-top: env(safe-area-inset-top);
   }
 
   .st-modal-backdrop {
@@ -481,7 +488,8 @@
   }
 
   .st-tooltip:hover .st-tooltip-content,
-  .st-tooltip:focus-within .st-tooltip-content {
+  .st-tooltip:focus-within .st-tooltip-content,
+  .st-tooltip-open .st-tooltip-content {
     opacity: 1;
   }
 
@@ -510,14 +518,17 @@
 
   .st-mobile-topbar {
     @apply sticky top-0 z-30 flex items-center justify-between gap-3 border-b px-4 py-3 backdrop-blur;
+    padding-top: calc(env(safe-area-inset-top) + 0.75rem);
     background: rgba(244, 241, 235, 0.92);
     border-color: rgba(91, 84, 74, 0.1);
+    box-shadow: 0 8px 24px rgba(40, 31, 22, 0.08);
   }
 
   .st-mobile-nav {
     @apply fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-2 border-t px-3 pb-[calc(env(safe-area-inset-bottom)+0.85rem)] pt-3 backdrop-blur;
     background: rgba(255, 253, 248, 0.96);
     border-color: rgba(91, 84, 74, 0.1);
+    box-shadow: 0 -12px 30px rgba(40, 31, 22, 0.12);
   }
 
   .st-mobile-nav-link {
@@ -538,8 +549,18 @@
 }
 
 @media (max-width: 767px) {
+  .page-panel {
+    border-radius: 24px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1.1rem);
+  }
+
+  .st-main-panel {
+    min-height: calc(var(--st-app-height) - 10.5rem);
+  }
+
   .st-modal-card {
     max-width: 100%;
+    min-height: min(70dvh, calc(var(--st-app-height) - env(safe-area-inset-top) - 0.5rem));
   }
 
   .st-modal-card > div:first-child {
@@ -551,8 +572,26 @@
   }
 
   .st-modal-card > div:last-child {
-    max-height: calc(94dvh - 88px);
+    max-height: calc(var(--st-app-height) - env(safe-area-inset-top) - 88px);
     padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
+  }
+
+  .st-toast {
+    left: 1rem;
+    right: 1rem;
+    top: auto;
+    bottom: calc(env(safe-area-inset-bottom) + 5.5rem);
+    max-width: none;
+  }
+
+  .st-tooltip-content {
+    left: auto;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    width: min(16rem, calc(100vw - 3rem));
+    margin-left: 0;
+    display: block;
+    transform: none;
   }
 
   .fc .fc-toolbar {
@@ -570,6 +609,27 @@
 
   .fc .fc-button {
     min-height: 40px;
+  }
+}
+
+.st-native-shell {
+  overscroll-behavior: none;
+}
+
+.st-native-shell body,
+body.st-native-shell {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: rgba(29, 107, 98, 0.12);
+}
+
+.st-native-app-shell .st-mobile-topbar,
+.st-native-app-shell .st-mobile-nav {
+  backdrop-filter: blur(18px);
+}
+
+@media (min-width: 768px) {
+  .st-main-panel {
+    min-height: calc(var(--st-app-height) - 3rem);
   }
 }
 
