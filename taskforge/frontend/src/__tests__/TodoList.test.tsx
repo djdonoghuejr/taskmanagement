@@ -15,6 +15,7 @@ const mockCreateTask = vi.fn(async (payload: Partial<Task>) => {
     name: payload.name || "",
     description: payload.description || null,
     project_id: payload.project_id || null,
+    can_be_done_virtually: payload.can_be_done_virtually || false,
     expected_minutes: payload.expected_minutes || null,
     start_date: payload.start_date || null,
     due_date: payload.due_date || null,
@@ -144,10 +145,11 @@ describe("TodoList", () => {
     fireEvent.change(screen.getByPlaceholderText("Task name"), { target: { value: "My Task" } });
     await screen.findByRole("option", { name: "Ops" });
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "project-1" } });
+    fireEvent.click(screen.getByRole("button", { name: /can be done virtually/i }));
     fireEvent.click(screen.getByText("Save"));
 
     await waitFor(() => expect(mockCreateTask).toHaveBeenCalled());
-    expect(mockCreateTask).toHaveBeenCalledWith(expect.objectContaining({ project_id: "project-1" }));
+    expect(mockCreateTask).toHaveBeenCalledWith(expect.objectContaining({ project_id: "project-1", can_be_done_virtually: true }));
     await waitFor(() => expect(screen.getByText("My Task")).toBeInTheDocument());
     expect(screen.getByText("Task created")).toBeInTheDocument();
     expect(screen.getByText("“My Task” is saved and ready when you are.")).toBeInTheDocument();
@@ -161,6 +163,7 @@ describe("TodoList", () => {
         name: "Original",
         description: null,
         project_id: null,
+        can_be_done_virtually: false,
         expected_minutes: null,
         start_date: null,
         due_date: null,

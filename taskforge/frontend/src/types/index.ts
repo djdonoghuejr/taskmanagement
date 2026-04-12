@@ -18,6 +18,7 @@ export interface Task {
   project_id?: string | null;
   name: string;
   description?: string | null;
+  can_be_done_virtually: boolean;
   expected_minutes?: number | null;
   start_date?: string | null;
   due_date?: string | null;
@@ -33,6 +34,7 @@ export interface TaskSummary {
   id: string;
   name: string;
   status: TaskStatus;
+  can_be_done_virtually?: boolean;
   expected_minutes?: number | null;
   start_date?: string | null;
   due_date?: string | null;

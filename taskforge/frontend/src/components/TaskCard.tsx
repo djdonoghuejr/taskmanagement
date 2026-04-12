@@ -26,6 +26,9 @@ export default function TaskCard({ task, onClick }: { task: Task; onClick?: () =
           {task.expected_minutes ? (
             <p className="mt-1 text-sm text-[color:var(--st-ink-muted)]">{task.expected_minutes} min expected</p>
           ) : null}
+          {task.can_be_done_virtually ? (
+            <p className="mt-1 text-sm font-semibold text-[color:var(--st-brand-strong)]">Can be done virtually</p>
+          ) : null}
         </div>
         <span className={`${statusClass} self-start`}>{task.status}</span>
       </div>

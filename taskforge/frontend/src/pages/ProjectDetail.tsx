@@ -136,6 +136,7 @@ function ProjectTaskSummaryCard({
             {task.due_date ? <span>Due {task.due_date}</span> : null}
             {!task.start_date && !task.due_date ? <span>Unscheduled</span> : null}
             {task.expected_minutes ? <span>{task.expected_minutes} min expected</span> : null}
+            {task.can_be_done_virtually ? <span className="st-badge st-badge-brand">Virtual</span> : null}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -236,6 +237,7 @@ function ProjectDependencySection({
                       <span className={statusBadgeClass(task.status)}>{task.status}</span>
                       {task.start_date ? <span className="st-badge">Starts {task.start_date}</span> : null}
                       {task.due_date ? <span className="st-badge">Due {task.due_date}</span> : null}
+                      {task.can_be_done_virtually ? <span className="st-badge st-badge-brand">Virtual</span> : null}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">

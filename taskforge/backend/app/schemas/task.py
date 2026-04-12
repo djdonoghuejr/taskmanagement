@@ -9,6 +9,7 @@ class TaskBase(BaseModel):
     name: str
     description: Optional[str] = None
     project_id: Optional[UUID] = None
+    can_be_done_virtually: bool = False
     expected_minutes: Optional[int] = Field(default=None, ge=1)
     start_date: Optional[date] = None
     due_date: Optional[date] = None
@@ -22,6 +23,7 @@ class TaskUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     project_id: Optional[UUID] = None
+    can_be_done_virtually: Optional[bool] = None
     expected_minutes: Optional[int] = Field(default=None, ge=1)
     start_date: Optional[date] = None
     due_date: Optional[date] = None

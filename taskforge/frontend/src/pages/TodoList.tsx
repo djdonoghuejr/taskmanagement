@@ -115,6 +115,7 @@ export default function TodoList() {
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[color:var(--st-ink-soft)]">
                   <p>{task.due_date || "No due date"}</p>
                   {task.expected_minutes ? <span>{task.expected_minutes} min expected</span> : null}
+                  {task.can_be_done_virtually ? <span className="st-badge st-badge-brand">Virtual</span> : null}
                 </div>
               </button>
 

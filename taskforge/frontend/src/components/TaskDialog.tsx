@@ -98,6 +98,7 @@ export default function TaskDialog({
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [canBeDoneVirtually, setCanBeDoneVirtually] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [expectedMinutes, setExpectedMinutes] = useState("");
@@ -146,6 +147,7 @@ export default function TaskDialog({
     if (!open) return;
     setName(effectiveTask?.name || "");
     setDescription(effectiveTask?.description || "");
+    setCanBeDoneVirtually(effectiveTask?.can_be_done_virtually || false);
     setStartDate(effectiveTask?.start_date || "");
     setDueDate(effectiveTask?.due_date || initialDueDate || "");
     setExpectedMinutes(effectiveTask?.expected_minutes ? String(effectiveTask.expected_minutes) : "");
@@ -208,6 +210,7 @@ export default function TaskDialog({
         name,
         description: description || null,
         project_id: selectedProjectId || null,
+        can_be_done_virtually: canBeDoneVirtually,
         expected_minutes: expectedMinutes ? Number(expectedMinutes) : null,
         start_date: startDate || null,
         due_date: dueDate || null,
@@ -228,6 +231,7 @@ export default function TaskDialog({
         name,
         description: description || null,
         project_id: selectedProjectId || null,
+        can_be_done_virtually: canBeDoneVirtually,
         expected_minutes: expectedMinutes ? Number(expectedMinutes) : null,
         start_date: startDate || null,
         due_date: dueDate || null,
@@ -390,6 +394,35 @@ export default function TaskDialog({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What is this about?"
             />
+          </label>
+
+          <label className="text-sm">
+            <span className="flex items-center gap-2">
+              <span className="st-label">Virtual</span>
+              <FieldHint label="Optional. Mark this if the task can be done remotely or online without needing to be somewhere in person." />
+            </span>
+            <button
+              type="button"
+              className={`mt-2 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left shadow-sm transition ${canBeDoneVirtually ? "border-[color:rgba(29,107,98,0.3)] bg-[color:var(--st-brand-soft)]" : "border-[color:rgba(91,84,74,0.18)] bg-white"}`}
+              aria-pressed={canBeDoneVirtually}
+              onClick={() => setCanBeDoneVirtually((current) => !current)}
+            >
+              <span>
+                <span className="block text-sm font-semibold text-[color:var(--st-ink)]">
+                  Can be done virtually
+                </span>
+                <span className="mt-1 block text-xs text-[color:var(--st-ink-soft)]">
+                  Helpful for planning when you are away from home or in the office.
+                </span>
+              </span>
+              <span
+                className={`inline-flex h-6 w-11 items-center rounded-full p-1 transition ${canBeDoneVirtually ? "bg-[color:var(--st-brand)]" : "bg-[color:rgba(91,84,74,0.2)]"}`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full bg-white shadow-sm transition ${canBeDoneVirtually ? "translate-x-5" : ""}`}
+                />
+              </span>
+            </button>
           </label>
 
           <label className="text-sm">

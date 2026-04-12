@@ -48,6 +48,7 @@ def _task_summary(task: Task) -> TaskSummary:
         id=task.id,
         name=task.name,
         status=task.status,
+        expected_minutes=task.expected_minutes,
         start_date=task.start_date,
         due_date=task.due_date,
         project_id=task.project_id,
@@ -345,6 +346,7 @@ def create_task(payload: TaskCreate, user: User = Depends(get_current_user), db:
         name=payload.name,
         description=payload.description,
         project_id=_validate_project_id(db, user_id=user.id, project_id=payload.project_id),
+        can_be_done_virtually=payload.can_be_done_virtually,
         expected_minutes=payload.expected_minutes,
         start_date=payload.start_date,
         due_date=payload.due_date,
@@ -432,6 +434,8 @@ def update_task(task_id: UUID, payload: TaskUpdate, user: User = Depends(get_cur
         task.start_date = data["start_date"]
     if "project_id" in data:
         task.project_id = _validate_project_id(db, user_id=user.id, project_id=data["project_id"])
+    if "can_be_done_virtually" in data:
+        task.can_be_done_virtually = data["can_be_done_virtually"]
     if "expected_minutes" in data:
         task.expected_minutes = data["expected_minutes"]
     if "status" in data:
@@ -440,7 +444,7 @@ def update_task(task_id: UUID, payload: TaskUpdate, user: User = Depends(get_cur
             task.status = TaskStatus.completed
         # ignore pending/blocked from clients
     for field, value in data.items():
-        if field in {"due_date", "start_date", "status", "project_id", "expected_minutes"}:
+        if field in {"due_date", "start_date", "status", "project_id", "expected_minutes", "can_be_done_virtually"}:
             continue
         setattr(task, field, value)
 

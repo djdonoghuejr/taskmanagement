@@ -2,10 +2,11 @@ from datetime import date
 
 
 def test_tasks_crud(client):
-    resp = client.post("/api/tasks", json={"name": "Task A", "tags": ["one"]})
+    resp = client.post("/api/tasks", json={"name": "Task A", "tags": ["one"], "can_be_done_virtually": True})
     assert resp.status_code == 200
     task = resp.json()
     assert task["status"] == "pending"
+    assert task["can_be_done_virtually"] is True
 
     list_resp = client.get("/api/tasks")
     assert list_resp.status_code == 200
@@ -43,6 +44,7 @@ def test_tasks_update_and_duplicate(client):
         json={
             "name": "Original",
             "description": "Desc",
+            "can_be_done_virtually": True,
             "expected_minutes": 25,
             "start_date": "2026-01-28",
             "due_date": "2026-02-02",
@@ -52,10 +54,11 @@ def test_tasks_update_and_duplicate(client):
 
     updated = client.put(
         f"/api/tasks/{created['id']}",
-        json={"name": "Updated", "description": "New", "expected_minutes": 40, "start_date": "2026-01-30"},
+        json={"name": "Updated", "description": "New", "can_be_done_virtually": False, "expected_minutes": 40, "start_date": "2026-01-30"},
     ).json()
     assert updated["name"] == "Updated"
     assert updated["description"] == "New"
+    assert updated["can_be_done_virtually"] is False
     assert updated["expected_minutes"] == 40
     assert updated["start_date"] == "2026-01-30"
 
@@ -63,6 +66,7 @@ def test_tasks_update_and_duplicate(client):
     assert duplicated["id"] != created["id"]
     assert duplicated["name"] == updated["name"]
     assert duplicated["description"] == updated["description"]
+    assert duplicated["can_be_done_virtually"] == updated["can_be_done_virtually"]
     assert duplicated["expected_minutes"] == updated["expected_minutes"]
     assert duplicated["start_date"] == updated["start_date"]
     assert duplicated["due_date"] == created["due_date"]
